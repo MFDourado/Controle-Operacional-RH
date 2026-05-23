@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>BlinTrack — Calculadora de Bonificação</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root {
+  --gold: #F5B800;
+  --gold-dark: #B88A00;
+  --gold-dim: rgba(245,184,0,0.12);
+  --gold-dim2: rgba(245,184,0,0.06);
+  --bg: #111214;
+  --bg2: #18191D;
+  --bg3: #1E2026;
+  --bg4: #23252B;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.12);
+  --text: #F0F0F0;
+  --text2: #A0A0A8;
+  --text3: #606068;
+  --red: #FF5252;
+  --green: #4CAF7D;
+  --radius: 10px;
+  --radius-sm: 6px;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 14px; }
+body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+/* HEADER */
+header {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(17,18,20,0.97); backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 28px; height: 56px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.logo { font-size: 18px; font-weight: 700; letter-spacing: -0.3px; display: flex; align-items: center; gap: 2px; }
+.logo span { color: var(--gold); }
+.logo-sep { color: var(--text3); margin: 0 10px; font-weight: 300; }
+.logo-sub { font-size: 12px; font-weight: 400; color: var(--text2); letter-spacing: 0.3px; }
+.header-periodo {
+  font-size: 12px; color: var(--text2);
+  background: var(--bg3); border: 1px solid var(--border);
+  padding: 5px 14px; border-radius: 20px;
+  display: flex; align-items: center; gap: 7px;
+}
+.header-periodo strong { color: var(--gold); font-size: 11px; }
+
+/* LAYOUT */
+.app { max-width: 1100px; margin: 0 auto; padding: 28px 24px 100px; }
+
+/* IMPORT BAR */
+.import-bar {
+  background: linear-gradient(135deg, var(--bg2) 0%, var(--bg3) 100%);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  padding: 20px 24px;
+  margin-bottom: 20px;
+  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+}
+.import-bar-left { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 200px; }
+.import-bar-left strong { font-size: 14px; font-weight: 600; color: var(--text); }
+.import-bar-left span { font-size: 12px; color: var(--text2); }
+.import-drop-zone {
+  border: 2px dashed var(--border2); border-radius: var(--radius-sm);
+  padding: 12px 20px; cursor: pointer; transition: all .2s;
+  display: flex; align-items: center; gap: 10px;
+  background: var(--bg4); min-width: 260px;
+}
+.import-drop-zone:hover, .import-drop-zone.drag-over {
+  border-color: var(--gold); background: var(--gold-dim);
+}
+.import-drop-zone .drop-icon { font-size: 22px; }
+.import-drop-zone .drop-text { font-size: 13px; color: var(--text2); line-height: 1.4; }
+.import-drop-zone .drop-text strong { color: var(--text); display: block; font-size: 12px; }
+#inp-xlsx { display: none; }
+.import-status {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 12px; padding: 6px 12px; border-radius: 20px;
+  background: rgba(76,175,125,.12); color: var(--green);
+  border: 1px solid rgba(76,175,125,.2);
+  display: none;
+}
+
+/* PERIODO BAR */
+.periodo-bar {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 14px 20px;
+  display: flex; align-items: center; gap: 14px; margin-bottom: 20px; flex-wrap: wrap;
+}
+.periodo-bar label { font-size: 12px; color: var(--text2); font-weight: 500; }
+.periodo-bar input[type="date"] {
+  background: var(--bg4); border: 1px solid var(--border2);
+  color: var(--text); font-family: 'DM Sans', sans-serif;
+  font-size: 13px; padding: 7px 12px; border-radius: var(--radius-sm); outline: none; cursor: pointer;
+}
+.periodo-bar input[type="date"]:focus { border-color: var(--gold); }
+.sep { color: var(--text3); font-size: 12px; }
+.spacer { flex: 1; }
+.btn-primary {
+  background: var(--gold); color: #111; font-weight: 700;
+  font-family: 'DM Sans', sans-serif; font-size: 13px;
+  border: none; border-radius: var(--radius-sm);
+  padding: 8px 18px; cursor: pointer; transition: opacity .15s;
+  display: flex; align-items: center; gap: 6px;
+}
+.btn-primary:hover { opacity: .85; }
+.btn-secondary {
+  background: transparent; color: var(--text2); font-weight: 500;
+  font-family: 'DM Sans', sans-serif; font-size: 13px;
+  border: 1px solid var(--border2); border-radius: var(--radius-sm);
+  padding: 7px 14px; cursor: pointer; transition: all .15s;
+  display: flex; align-items: center; gap: 6px;
+}
+.btn-secondary:hover { border-color: var(--gold); color: var(--gold); }
+
+/* SECTION */
+.section { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 14px; overflow: hidden; }
+.section-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 18px; cursor: pointer; user-select: none;
+  border-bottom: 1px solid transparent; transition: background .15s, border-color .2s;
+}
+.section-header:hover { background: var(--bg3); }
+.section-header.open { border-bottom-color: var(--border); }
+.section-title { display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 600; letter-spacing: 0.3px; }
+.section-icon { width: 28px; height: 28px; border-radius: 6px; background: var(--gold-dim); color: var(--gold); display: flex; align-items: center; justify-content: center; font-size: 14px; }
+.section-badge { background: var(--gold-dim); color: var(--gold); font-size: 11px; font-weight: 600; font-family: 'DM Mono', monospace; padding: 2px 8px; border-radius: 12px; }
+.chevron { color: var(--text3); font-size: 12px; transition: transform .2s; }
+.chevron.open { transform: rotate(180deg); }
+.section-body { display: none; padding: 16px 18px; }
+.section-body.open { display: block; }
+
+/* TEC ROWS */
+.tec-list { display: flex; flex-direction: column; gap: 8px; }
+.tec-row {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 10px 14px; transition: border-color .15s;
+}
+.tec-row:hover { border-color: var(--border2); }
+.tec-avatar { width: 30px; height: 30px; border-radius: 50%; background: var(--gold-dim); color: var(--gold); font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.tec-name input {
+  background: transparent; border: none; color: var(--text);
+  font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600;
+  outline: none; width: 110px;
+}
+.tec-fields { display: flex; align-items: center; gap: 8px; flex: 1; flex-wrap: wrap; }
+.field-group { display: flex; flex-direction: column; gap: 3px; }
+.field-group label { font-size: 10px; color: var(--text3); font-weight: 500; letter-spacing: 0.4px; text-transform: uppercase; }
+.field-group input[type="number"] {
+  background: var(--bg4); border: 1px solid var(--border);
+  color: var(--text); font-family: 'DM Mono', monospace; font-size: 13px;
+  padding: 5px 9px; border-radius: var(--radius-sm); width: 70px;
+  outline: none; text-align: center; transition: border-color .15s;
+}
+.field-group input[type="number"]:focus { border-color: var(--gold); }
+.tec-total { margin-left: auto; text-align: right; font-family: 'DM Mono', monospace; font-size: 15px; font-weight: 700; color: var(--gold); min-width: 90px; }
+.tec-total small { display: block; font-size: 10px; color: var(--text3); font-weight: 400; font-family: 'DM Sans', sans-serif; }
+.btn-remove { background: none; border: none; color: var(--text3); cursor: pointer; font-size: 17px; padding: 2px 4px; transition: color .15s; line-height: 1; }
+.btn-remove:hover { color: var(--red); }
+.btn-add-row {
+  display: flex; align-items: center; gap: 7px;
+  background: none; border: 1px dashed var(--border2);
+  color: var(--text2); font-family: 'DM Sans', sans-serif;
+  font-size: 12px; font-weight: 500; padding: 8px 14px;
+  border-radius: var(--radius-sm); cursor: pointer; width: 100%;
+  transition: all .15s; margin-top: 8px;
+}
+.btn-add-row:hover { border-color: var(--gold); color: var(--gold); background: var(--gold-dim2); }
+
+/* GENERIC ROW */
+.generic-row {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 10px 14px;
+  margin-bottom: 8px; transition: border-color .15s;
+}
+.generic-row:hover { border-color: var(--border2); }
+.generic-row select, .generic-row input[type="text"], .generic-row input[type="number"] {
+  background: var(--bg4); border: 1px solid var(--border);
+  color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 13px;
+  padding: 6px 10px; border-radius: var(--radius-sm); outline: none; transition: border-color .15s;
+}
+.generic-row select:focus, .generic-row input:focus { border-color: var(--gold); }
+.generic-row select.w-tec { min-width: 130px; }
+.generic-row select.w-tipo { min-width: 180px; }
+.generic-row input.w-destino { min-width: 140px; flex: 1; }
+.generic-row input.w-num { width: 70px; text-align: center; font-family: 'DM Mono', monospace; }
+.generic-row input.w-datas { min-width: 180px; flex: 1; }
+.row-valor { font-family: 'DM Mono', monospace; font-size: 13px; color: var(--gold); font-weight: 600; min-width: 80px; text-align: right; }
+.tag { font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 10px; letter-spacing: 0.3px; white-space: nowrap; }
+.tag-inst { background: rgba(76,175,125,.15); color: var(--green); }
+.tag-man  { background: rgba(245,184,0,.12); color: var(--gold); }
+
+/* RESUMO */
+.resumo-block { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-top: 24px; }
+.resumo-title { background: var(--gold-dim); border-bottom: 1px solid var(--border); padding: 14px 20px; font-size: 13px; font-weight: 700; color: var(--gold); letter-spacing: 0.5px; text-transform: uppercase; display: flex; align-items: center; gap: 8px; }
+.resumo-table { width: 100%; border-collapse: collapse; }
+.resumo-table th { background: var(--bg3); color: var(--text2); font-size: 10px; font-weight: 600; letter-spacing: 0.6px; text-transform: uppercase; padding: 10px 16px; text-align: left; border-bottom: 1px solid var(--border); }
+.resumo-table th:last-child { text-align: right; }
+.resumo-table td { padding: 10px 16px; font-size: 13px; border-bottom: 1px solid var(--border); }
+.resumo-table td:last-child { text-align: right; font-family: 'DM Mono', monospace; font-weight: 600; color: var(--gold); }
+.resumo-table tr:last-child td { border-bottom: none; }
+.resumo-table tr:hover td { background: var(--bg3); }
+.resumo-total-row td { background: var(--bg3) !important; font-weight: 700; border-top: 2px solid var(--gold) !important; }
+.resumo-total-row td:last-child { font-size: 17px; }
+
+/* EXPORT BAR */
+.export-bar {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  background: rgba(17,18,20,0.97); backdrop-filter: blur(12px);
+  border-top: 1px solid var(--border2);
+  padding: 14px 28px; display: flex; align-items: center; gap: 14px; z-index: 100;
+}
+.export-total-label { font-size: 12px; color: var(--text2); }
+.export-total-value { font-family: 'DM Mono', monospace; font-size: 22px; font-weight: 700; color: var(--gold); }
+.export-info { font-size: 11px; color: var(--text3); }
+
+/* TOAST */
+.toast {
+  position: fixed; top: 68px; right: 20px; z-index: 999;
+  background: var(--bg3); border: 1px solid var(--gold);
+  color: var(--text); padding: 10px 18px; border-radius: var(--radius-sm);
+  font-size: 13px; font-weight: 500; display: none;
+  animation: slideIn .25s ease;
+}
+@keyframes slideIn { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:none; } }
+
+/* MODAL */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,.75);
+  display: none; align-items: center; justify-content: center; z-index: 200;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--bg2); border: 1px solid var(--border2);
+  border-radius: var(--radius); width: 480px; max-width: 95vw; overflow: hidden;
+}
+.modal-header { padding: 18px 20px 14px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+.modal-header h3 { font-size: 14px; font-weight: 700; }
+.modal-body { padding: 20px; }
+.modal-footer { padding: 14px 20px; border-top: 1px solid var(--border); display: flex; gap: 10px; justify-content: flex-end; }
+.modal-body p { font-size: 13px; color: var(--text2); margin-bottom: 16px; line-height: 1.6; }
+.modal-body code { background: var(--bg4); color: var(--gold); padding: 2px 6px; border-radius: 4px; font-family: 'DM Mono', monospace; font-size: 12px; }
+.inp-url { width: 100%; background: var(--bg4); border: 1px solid var(--border2); color: var(--text); font-family: 'DM Mono', monospace; font-size: 12px; padding: 9px 12px; border-radius: var(--radius-sm); outline: none; }
+.inp-url:focus { border-color: var(--gold); }
+
+.empty-state { text-align: center; padding: 24px 0; color: var(--text3); font-size: 13px; }
+input[type="number"]::-webkit-inner-spin-button { opacity: .35; }
+select option { background: var(--bg4); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Blin<span>Track</span><span class="logo-sep">|</span><span class="logo-sub">Calculadora de Bonificação</span></div>
+  <div class="header-periodo"><strong>PERÍODO</strong><span id="hdr-periodo">—</span></div>
+</header>
+
+<div class="app">
+
+  <!-- IMPORT XLSX -->
+  <div class="import-bar">
+    <div class="import-bar-left">
+      <strong>📂 Importar planilha do mês</strong>
+      <span>Arraste ou selecione o arquivo .xlsx — os campos serão preenchidos automaticamente</span>
+    </div>
+    <div class="import-drop-zone" id="drop-zone" onclick="document.getElementById('inp-xlsx').click()"
+      ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="dropFile(event)">
+      <span class="drop-icon">📊</span>
+      <div class="drop-text">
+        <strong>Clique ou arraste aqui</strong>
+        Arquivo .xlsx do período
+      </div>
+    </div>
+    <input type="file" id="inp-xlsx" accept=".xlsx,.xls" onchange="importXlsx(this.files[0])"/>
+    <div class="import-status" id="import-status">✅ <span id="import-status-txt"></span></div>
+    <button class="btn-secondary" onclick="abrirModalScript()" title="Configurar AppScript">⚙️ AppScript</button>
+  </div>
+
+  <!-- PERIODO -->
+  <div class="periodo-bar">
+    <label>De</label>
+    <input type="date" id="dt-inicio" value="2026-04-21"/>
+    <span class="sep">→</span>
+    <label>Até</label>
+    <input type="date" id="dt-fim" value="2026-05-20"/>
+    <div class="spacer"></div>
+    <button class="btn-secondary" onclick="limparTudo()">🗑 Limpar</button>
+    <button class="btn-secondary" onclick="copiarResumo()">📋 Copiar resumo</button>
+    <button class="btn-primary" onclick="exportarRelatorio()">📄 Exportar Word/PDF</button>
+  </div>
+
+  <!-- OS TÉCNICO -->
+  <div class="section" id="sec-os">
+    <div class="section-header open" onclick="toggleSection('os')">
+      <div class="section-title">
+        <div class="section-icon">📋</div>
+        Bonificação por OS
+        <span class="section-badge" id="badge-os">0 técnicos</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="font-size:11px;color:var(--text3)">R$ 6,00/OS téc · R$ 4,00/OS ajud</span>
+        <span class="chevron open" id="chev-os">▼</span>
+      </div>
+    </div>
+    <div class="section-body open" id="body-os">
+      <div class="tec-list" id="list-os"></div>
+      <button class="btn-add-row" onclick="addTecnico()">+ Adicionar técnico</button>
+    </div>
+  </div>
+
+  <!-- VIAGENS -->
+  <div class="section" id="sec-viagens">
+    <div class="section-header open" onclick="toggleSection('viagens')">
+      <div class="section-title">
+        <div class="section-icon">✈️</div>
+        Viagens
+        <span class="section-badge" id="badge-viagens">0 viagens</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="font-size:11px;color:var(--text3)">R$ 50,00/dia</span>
+        <span class="chevron open" id="chev-viagens">▼</span>
+      </div>
+    </div>
+    <div class="section-body open" id="body-viagens">
+      <div id="list-viagens"></div>
+      <button class="btn-add-row" onclick="addViagem()">+ Adicionar viagem</button>
+    </div>
+  </div>
+
+  <!-- MONTAGENS -->
+  <div class="section" id="sec-montagens">
+    <div class="section-header open" onclick="toggleSection('montagens')">
+      <div class="section-title">
+        <div class="section-icon">🔧</div>
+        Montagens / Instalações
+        <span class="section-badge" id="badge-montagens">0 itens</span>
+      </div>
+      <span class="chevron open" id="chev-montagens">▼</span>
+    </div>
+    <div class="section-body open" id="body-montagens">
+      <div id="list-montagens"></div>
+      <button class="btn-add-row" onclick="addMontagem()">+ Adicionar montagem</button>
+    </div>
+  </div>
+
+  <!-- SOBREAVISO -->
+  <div class="section" id="sec-sobreaviso">
+    <div class="section-header open" onclick="toggleSection('sobreaviso')">
+      <div class="section-title">
+        <div class="section-icon">🔔</div>
+        Sobreaviso
+        <span class="section-badge" id="badge-sobreaviso">0 registros</span>
+      </div>
+      <span class="chevron open" id="chev-sobreaviso">▼</span>
+    </div>
+    <div class="section-body open" id="body-sobreaviso">
+      <div id="list-sobreaviso"></div>
+      <button class="btn-add-row" onclick="addSobreaviso()">+ Adicionar sobreaviso</button>
+    </div>
+  </div>
+
+  <!-- RESUMO -->
+  <div class="resumo-block">
+    <div class="resumo-title">📊 Resumo por Técnico</div>
+    <table class="resumo-table">
+      <thead>
+        <tr>
+          <th>Técnico</th><th>OS Bônus</th><th>Viagens</th>
+          <th>Montagens</th><th>Sobreaviso</th><th>Total</th>
+        </tr>
+      </thead>
+      <tbody id="resumo-tbody">
+        <tr><td colspan="6" class="empty-state">Importe um arquivo ou adicione dados manualmente</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- EXPORT BAR -->
+<div class="export-bar">
+  <div>
+    <div class="export-total-label">TOTAL GERAL</div>
+    <div class="export-total-value" id="total-geral">R$ 0,00</div>
+  </div>
+  <div class="export-info" id="export-info">0 técnicos</div>
+  <div class="spacer"></div>
+  <button class="btn-primary" onclick="exportarRelatorio()">📄 Exportar Word/PDF</button>
+</div>
+
+<!-- MODAL APPSCRIPT URL -->
+<div class="modal-overlay" id="modal-script">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>⚙️ Configurar AppScript</h3>
+      <button class="btn-remove" onclick="fecharModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <p>Cole aqui a URL do seu Google Apps Script implantado. Ela será salva no navegador e usada para gerar o relatório Word/PDF.</p>
+      <p>No Apps Script: <code>Implantar → Nova implantação → App da Web</code></p>
+      <input class="inp-url" id="inp-script-url" placeholder="https://script.google.com/macros/s/.../exec" type="url"/>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="fecharModal()">Cancelar</button>
+      <button class="btn-primary" onclick="salvarScriptUrl()">💾 Salvar URL</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<datalist id="nomes-list"></datalist>
+
+<script>
+// ── CONSTANTES ──
+const TIPOS_MONTAGEM = [
+  { label: "Rack HD – R$150",         valor: 150 },
+  { label: "Bandeja – R$25",          valor: 25  },
+  { label: "Upgrade – R$50",          valor: 50  },
+  { label: "Rack IP – R$150",         valor: 150 },
+  { label: "Bônus Rack HD – R$300",   valor: 300 },
+];
+let NOMES = ["Dani","Mozart","Rogério","Marta","Gabriel","Daniel","Isaque","Marco","Maria"];
+
+// ── ESTADO ──
+let tecnicos   = [];
+let viagens    = [];
+let montagens  = [];
+let sobreaviso = [];
+
+// ── UTILS ──
+const fmt  = v => 'R$ ' + v.toFixed(2).replace('.',',');
+const uid  = () => Math.random().toString(36).slice(2,8);
+const av   = n => (n||'?').trim().charAt(0).toUpperCase();
+
+function toast(msg, dur=2400) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.style.display = 'block';
+  clearTimeout(t._t); t._t = setTimeout(() => t.style.display='none', dur);
+}
+
+function atualizarHeader() {
+  const f = d => d ? d.split('-').reverse().join('/') : '—';
+  document.getElementById('hdr-periodo').textContent =
+    f(document.getElementById('dt-inicio').value) + ' – ' +
+    f(document.getElementById('dt-fim').value);
+}
+document.getElementById('dt-inicio').addEventListener('change', atualizarHeader);
+document.getElementById('dt-fim').addEventListener('change', atualizarHeader);
+atualizarHeader();
+
+function toggleSection(id) {
+  const b = document.getElementById('body-'+id);
+  const c = document.getElementById('chev-'+id);
+  const h = document.querySelector('#sec-'+id+' .section-header');
+  const o = b.classList.toggle('open');
+  c.classList.toggle('open',o); h.classList.toggle('open',o);
+}
+
+function nomesOpts(sel='') {
+  return NOMES.map(n=>`<option${n===sel?' selected':''}>${n}</option>`).join('');
+}
+function atualizarDatalist() {
+  document.getElementById('nomes-list').innerHTML =
+    NOMES.map(n=>`<option value="${n}">`).join('');
+}
+atualizarDatalist();
+
+// ══════════════════════════════════════
+// IMPORT XLSX
+// ══════════════════════════════════════
+function dragOver(e) { e.preventDefault(); document.getElementById('drop-zone').classList.add('drag-over'); }
+function dragLeave(e) { document.getElementById('drop-zone').classList.remove('drag-over'); }
+function dropFile(e) {
+  e.preventDefault();
+  dragLeave(e);
+  const file = e.dataTransfer.files[0];
+  if (file) importXlsx(file);
+}
+
+function importXlsx(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const wb = XLSX.read(e.target.result, { type: 'array' });
+      let tec=0, via=0, mon=0, sob=0;
+
+      // Limpa tudo antes de importar
+      tecnicos=[]; viagens=[]; montagens=[]; sobreaviso=[];
+
+      wb.SheetNames.forEach(name => {
+        const sheet = wb.Sheets[name];
+        const rows  = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+        const nl    = name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+
+        if (nl.includes('tecnico') || nl.includes('os') || nl.includes('bonif')) {
+          rows.forEach(r => {
+            const nome   = r['Técnico'] || r['tecnico'] || r['Nome'] || r['nome'] || '';
+            const osTec  = +(r['OS Técnico'] || r['os_tecnico'] || r['OS_Tecnico'] || 0);
+            const osAjud = +(r['OS Ajudante'] || r['os_ajudante'] || r['OS_Ajudante'] || 0);
+            if (nome) { tecnicos.push({ id:uid(), nome, osTec, osAjud }); tec++; }
+          });
+        }
+        else if (nl.includes('viagem')) {
+          rows.forEach(r => {
+            const nome    = r['Técnico'] || r['tecnico'] || r['nome'] || '';
+            const destino = r['Destino'] || r['destino'] || r['Local'] || '';
+            const tipo    = r['Tipo'] || r['tipo'] || 'Instalação';
+            const dias    = +(r['Dias'] || r['dias'] || 1);
+            if (nome) { viagens.push({ id:uid(), nome, destino, tipo, dias }); via++; }
+          });
+        }
+        else if (nl.includes('montagem') || nl.includes('instalacao')) {
+          rows.forEach(r => {
+            const nome   = r['Técnico'] || r['tecnico'] || r['nome'] || '';
+            const tipoL  = r['Tipo'] || r['tipo'] || r['Item'] || '';
+            const qtd    = +(r['Qtd'] || r['qtd'] || r['Quantidade'] || 1);
+            const idx    = TIPOS_MONTAGEM.findIndex(t => t.label.toLowerCase().includes(tipoL.toLowerCase().split('–')[0].trim().toLowerCase()));
+            if (nome) { montagens.push({ id:uid(), nome, tipoIdx: idx>=0?idx:0, qtd }); mon++; }
+          });
+        }
+        else if (nl.includes('sobreaviso')) {
+          rows.forEach(r => {
+            const nome  = r['Técnico'] || r['tecnico'] || r['nome'] || '';
+            const datas = r['Datas'] || r['datas'] || '';
+            const horas = +(r['Horas'] || r['horas'] || r['Total de horas'] || 10);
+            if (nome) { sobreaviso.push({ id:uid(), nome, datas, horas }); sob++; }
+          });
+        }
+        // Aba única com múltiplas seções detectadas por colunas
+        else {
+          rows.forEach(r => {
+            const keys = Object.keys(r).map(k=>k.toLowerCase());
+            const nome = r['Técnico'] || r['tecnico'] || r['nome'] || '';
+            if (!nome) return;
+            if (keys.includes('os técnico') || keys.includes('os_tecnico')) {
+              tecnicos.push({ id:uid(), nome, osTec:+(r['OS Técnico']||0), osAjud:+(r['OS Ajudante']||0) }); tec++;
+            } else if (keys.includes('destino')) {
+              viagens.push({ id:uid(), nome, destino:r['Destino']||'', tipo:r['Tipo']||'Instalação', dias:+(r['Dias']||1) }); via++;
+            } else if (keys.includes('qtd') || keys.includes('quantidade')) {
+              const tipoL = r['Tipo']||r['Item']||''; const idx = TIPOS_MONTAGEM.findIndex(t=>t.label.toLowerCase().includes(tipoL.toLowerCase().split('–')[0].trim()));
+              montagens.push({ id:uid(), nome, tipoIdx:idx>=0?idx:0, qtd:+(r['Qtd']||r['Quantidade']||1) }); mon++;
+            } else if (keys.includes('datas')) {
+              sobreaviso.push({ id:uid(), nome, datas:r['Datas']||'', horas:+(r['Horas']||10) }); sob++;
+            }
+          });
+        }
+      });
+
+      // Atualiza nomes sugeridos
+      const novosNomes = [...new Set([...tecnicos,...viagens,...montagens,...sobreaviso].map(x=>x.nome).filter(Boolean))];
+      if (novosNomes.length) { NOMES = [...new Set([...novosNomes,...NOMES])]; atualizarDatalist(); }
+
+      renderTecnicos(); renderViagens(); renderMontagens(); renderSobreaviso();
+
+      const total = tec+via+mon+sob;
+      const status = document.getElementById('import-status');
+      document.getElementById('import-status-txt').textContent =
+        `${file.name} — ${total} registros importados`;
+      status.style.display = 'flex';
+      toast(`✅ Importado: ${tec} técnicos, ${via} viagens, ${mon} montagens, ${sob} sobreaviso`);
+    } catch(err) {
+      toast('❌ Erro ao ler o arquivo: ' + err.message);
+      console.error(err);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// ══════════════════════════════════════
+// TÉCNICOS
+// ══════════════════════════════════════
+function addTecnico(nome='',osTec=0,osAjud=0) {
+  tecnicos.push({ id:uid(), nome, osTec, osAjud }); renderTecnicos();
+}
+function removeTecnico(id) { tecnicos=tecnicos.filter(t=>t.id!==id); renderTecnicos(); calcResumo(); }
+function renderTecnicos() {
+  const list = document.getElementById('list-os');
+  document.getElementById('badge-os').textContent = tecnicos.length + ' técnico'+(tecnicos.length!==1?'s':'');
+  if (!tecnicos.length) { list.innerHTML='<div class="empty-state">Nenhum técnico adicionado</div>'; calcResumo(); return; }
+  list.innerHTML = tecnicos.map(t => {
+    const val = t.osTec*6 + t.osAjud*4;
+    return `<div class="tec-row" id="tr-${t.id}">
+      <div class="tec-avatar">${av(t.nome)}</div>
+      <div class="tec-name"><input list="nomes-list" value="${t.nome}" placeholder="Nome"
+        oninput="updTec('${t.id}','nome',this.value)"/></div>
+      <div class="tec-fields">
+        <div class="field-group"><label>OS Técnico</label>
+          <input type="number" min="0" value="${t.osTec}" oninput="updTec('${t.id}','osTec',+this.value)"/></div>
+        <div class="field-group"><label>OS Ajudante</label>
+          <input type="number" min="0" value="${t.osAjud}" oninput="updTec('${t.id}','osAjud',+this.value)"/></div>
+      </div>
+      <div class="tec-total">${fmt(val)}<small>OS Bônus</small></div>
+      <button class="btn-remove" onclick="removeTecnico('${t.id}')">×</button>
+    </div>`;
+  }).join('');
+  calcResumo();
+}
+function updTec(id,campo,val) {
+  const t=tecnicos.find(x=>x.id===id); if(!t)return; t[campo]=val;
+  const card=document.getElementById('tr-'+id);
+  if(card) {
+    card.querySelector('.tec-avatar').textContent=av(t.nome);
+    card.querySelector('.tec-total').innerHTML=fmt(t.osTec*6+t.osAjud*4)+'<small>OS Bônus</small>';
+  }
+  calcResumo();
+}
+
+// ══════════════════════════════════════
+// VIAGENS
+// ══════════════════════════════════════
+function addViagem(nome='',destino='',tipo='Instalação',dias=1) {
+  viagens.push({ id:uid(), nome, destino, tipo, dias }); renderViagens();
+}
+function removeViagem(id) { viagens=viagens.filter(v=>v.id!==id); renderViagens(); calcResumo(); }
+function renderViagens() {
+  const list=document.getElementById('list-viagens');
+  document.getElementById('badge-viagens').textContent=viagens.length+' viagem'+(viagens.length!==1?'s':'');
+  if(!viagens.length){list.innerHTML='<div class="empty-state">Nenhuma viagem registrada</div>';calcResumo();return;}
+  list.innerHTML=viagens.map(v=>{
+    const val=v.dias*50;
+    return `<div class="generic-row">
+      <select class="w-tec" onchange="updViagem('${v.id}','nome',this.value)">${nomesOpts(v.nome)}</select>
+      <input type="text" class="w-destino" placeholder="Destino" value="${v.destino}" oninput="updViagem('${v.id}','destino',this.value)"/>
+      <select class="w-tipo" onchange="updViagem('${v.id}','tipo',this.value)">
+        <option${v.tipo==='Instalação'?' selected':''}>Instalação</option>
+        <option${v.tipo==='Manutenção'?' selected':''}>Manutenção</option>
+      </select>
+      <div class="field-group"><label style="font-size:10px;color:var(--text3)">Dias</label>
+        <input type="number" class="w-num" min="1" value="${v.dias}" oninput="updViagem('${v.id}','dias',+this.value)"/></div>
+      <span class="tag ${v.tipo==='Instalação'?'tag-inst':'tag-man'}">${v.tipo}</span>
+      <span class="row-valor">${fmt(val)}</span>
+      <button class="btn-remove" onclick="removeViagem('${v.id}')">×</button>
+    </div>`;
+  }).join('');
+  calcResumo();
+}
+function updViagem(id,c,v){const x=viagens.find(i=>i.id===id);if(x){x[c]=v;renderViagens();}}
+
+// ══════════════════════════════════════
+// MONTAGENS
+// ══════════════════════════════════════
+function addMontagem(nome='',tipoIdx=0,qtd=1){
+  montagens.push({id:uid(),nome,tipoIdx,qtd});renderMontagens();
+}
+function removeMontagem(id){montagens=montagens.filter(m=>m.id!==id);renderMontagens();calcResumo();}
+function renderMontagens(){
+  const list=document.getElementById('list-montagens');
+  document.getElementById('badge-montagens').textContent=montagens.length+' item'+(montagens.length!==1?'s':'');
+  if(!montagens.length){list.innerHTML='<div class="empty-state">Nenhuma montagem registrada</div>';calcResumo();return;}
+  const tiposOpts=(sel)=>TIPOS_MONTAGEM.map((t,i)=>`<option value="${i}"${i===sel?' selected':''}>${t.label}</option>`).join('');
+  list.innerHTML=montagens.map(m=>{
+    const t=TIPOS_MONTAGEM[m.tipoIdx]||TIPOS_MONTAGEM[0];
+    return `<div class="generic-row">
+      <select class="w-tec" onchange="updMon('${m.id}','nome',this.value)">${nomesOpts(m.nome)}</select>
+      <select class="w-tipo" onchange="updMon('${m.id}','tipoIdx',+this.value)">${tiposOpts(m.tipoIdx)}</select>
+      <div class="field-group"><label style="font-size:10px;color:var(--text3)">Qtd</label>
+        <input type="number" class="w-num" min="1" value="${m.qtd}" oninput="updMon('${m.id}','qtd',+this.value)"/></div>
+      <span class="row-valor">${fmt(t.valor*m.qtd)}</span>
+      <button class="btn-remove" onclick="removeMontagem('${m.id}')">×</button>
+    </div>`;
+  }).join('');
+  calcResumo();
+}
+function updMon(id,c,v){const x=montagens.find(i=>i.id===id);if(x){x[c]=v;renderMontagens();}}
+
+// ══════════════════════════════════════
+// SOBREAVISO
+// ══════════════════════════════════════
+function addSobreaviso(nome='',datas='',horas=10){
+  sobreaviso.push({id:uid(),nome,datas,horas});renderSobreaviso();
+}
+function removeSobreaviso(id){sobreaviso=sobreaviso.filter(s=>s.id!==id);renderSobreaviso();calcResumo();}
+function renderSobreaviso(){
+  const list=document.getElementById('list-sobreaviso');
+  document.getElementById('badge-sobreaviso').textContent=sobreaviso.length+' registro'+(sobreaviso.length!==1?'s':'');
+  if(!sobreaviso.length){list.innerHTML='<div class="empty-state">Nenhum sobreaviso registrado</div>';calcResumo();return;}
+  list.innerHTML=sobreaviso.map(s=>`
+    <div class="generic-row">
+      <select class="w-tec" onchange="updSob('${s.id}','nome',this.value)">${nomesOpts(s.nome)}</select>
+      <input type="text" class="w-datas" placeholder="Datas (ex: 25/04, 01/05)" value="${s.datas}" oninput="updSob('${s.id}','datas',this.value)"/>
+      <div class="field-group"><label style="font-size:10px;color:var(--text3)">Horas</label>
+        <input type="number" class="w-num" min="1" value="${s.horas}" oninput="updSob('${s.id}','horas',+this.value)"/></div>
+      <span class="row-valor">${s.horas}h</span>
+      <button class="btn-remove" onclick="removeSobreaviso('${s.id}')">×</button>
+    </div>`).join('');
+  calcResumo();
+}
+function updSob(id,c,v){const x=sobreaviso.find(i=>i.id===id);if(x){x[c]=v;renderSobreaviso();}}
+
+// ══════════════════════════════════════
+// RESUMO
+// ══════════════════════════════════════
+function calcResumo(){
+  const mapa={};
+  const add=(nome,campo,val)=>{
+    if(!nome)nome='—';
+    if(!mapa[nome])mapa[nome]={os:0,viagens:0,montagens:0,horas:0};
+    mapa[nome][campo]+=val;
+  };
+  tecnicos.forEach(t=>add(t.nome,'os',t.osTec*6+t.osAjud*4));
+  viagens.forEach(v=>add(v.nome,'viagens',v.dias*50));
+  montagens.forEach(m=>add(m.nome,'montagens',(TIPOS_MONTAGEM[m.tipoIdx]||TIPOS_MONTAGEM[0]).valor*m.qtd));
+  sobreaviso.forEach(s=>{ add(s.nome,'horas',0); mapa[s.nome||'—'].horas+=s.horas; });
+
+  const nomes=Object.keys(mapa);
+  const tbody=document.getElementById('resumo-tbody');
+  if(!nomes.length){
+    tbody.innerHTML='<tr><td colspan="6" class="empty-state">Importe um arquivo ou adicione dados manualmente</td></tr>';
+    document.getElementById('total-geral').textContent='R$ 0,00';
+    document.getElementById('export-info').textContent='0 técnicos';
+    return;
+  }
+  let tot=0;
+  tbody.innerHTML=nomes.map(nome=>{
+    const r=mapa[nome];
+    const total=r.os+r.viagens+r.montagens;
+    tot+=total;
+    return `<tr>
+      <td><strong>${nome}</strong></td>
+      <td style="font-family:'DM Mono',monospace;font-size:12px">${fmt(r.os)}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:12px">${fmt(r.viagens)}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:12px">${fmt(r.montagens)}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:12px">${r.horas>0?r.horas+'h':'—'}</td>
+      <td>${fmt(total)}</td>
+    </tr>`;
+  }).join('')+`<tr class="resumo-total-row">
+    <td colspan="5"><strong>TOTAL GERAL</strong></td><td>${fmt(tot)}</td>
+  </tr>`;
+  document.getElementById('total-geral').textContent=fmt(tot);
+  const nReg=tecnicos.length+viagens.length+montagens.length+sobreaviso.length;
+  document.getElementById('export-info').textContent=nomes.length+' técnico'+(nomes.length!==1?'s':'')+' · '+nReg+' registro'+(nReg!==1?'s':'');
+}
+
+// ══════════════════════════════════════
+// COPIAR RESUMO
+// ══════════════════════════════════════
+function copiarResumo(){
+  const ini=document.getElementById('dt-inicio').value.split('-').reverse().join('/');
+  const fim=document.getElementById('dt-fim').value.split('-').reverse().join('/');
+  let txt=`📊 RESUMO DE BONIFICAÇÃO — ${ini} a ${fim}\n\n`;
+  if(tecnicos.length){
+    txt+=`*BONIFICAÇÃO OS:*\n`;
+    tecnicos.forEach(t=>txt+=`• ${t.nome}: ${t.osTec} OS téc + ${t.osAjud} OS ajud = ${fmt(t.osTec*6+t.osAjud*4)}\n`);
+    txt+='\n';
+  }
+  if(viagens.length){
+    txt+=`*VIAGENS (R$50/dia):*\n`;
+    viagens.forEach(v=>txt+=`• ${v.nome} — ${v.destino} (${v.tipo}) — ${v.dias} dia(s) = ${fmt(v.dias*50)}\n`);
+    txt+='\n';
+  }
+  if(montagens.length){
+    txt+=`*MONTAGENS:*\n`;
+    montagens.forEach(m=>{const t=TIPOS_MONTAGEM[m.tipoIdx]||TIPOS_MONTAGEM[0];txt+=`• ${m.nome} — ${t.label} x${m.qtd} = ${fmt(t.valor*m.qtd)}\n`;});
+    txt+='\n';
+  }
+  if(sobreaviso.length){
+    txt+=`*SOBREAVISO:*\n`;
+    sobreaviso.forEach(s=>txt+=`• ${s.nome} — ${s.datas} — ${s.horas}h\n`);
+    txt+='\n';
+  }
+  let tot=0;
+  tecnicos.forEach(t=>tot+=t.osTec*6+t.osAjud*4);
+  viagens.forEach(v=>tot+=v.dias*50);
+  montagens.forEach(m=>tot+=(TIPOS_MONTAGEM[m.tipoIdx]||TIPOS_MONTAGEM[0]).valor*m.qtd);
+  txt+=`*TOTAL GERAL: ${fmt(tot)}*`;
+  navigator.clipboard.writeText(txt).then(()=>toast('✅ Resumo copiado!')).catch(()=>toast('❌ Erro ao copiar'));
+}
+
+// ══════════════════════════════════════
+// EXPORTAR (AppScript)
+// ══════════════════════════════════════
+function exportarRelatorio(){
+  const url = localStorage.getItem('blintrack_script_url') || '';
+  const ini=document.getElementById('dt-inicio').value.split('-').reverse().join('/');
+  const fim=document.getElementById('dt-fim').value.split('-').reverse().join('/');
+  const payload={
+    action:'gerarRelatorio',
+    periodo:`${ini} a ${fim}`,
+    tecnicos,
+    viagens,
+    montagens: montagens.map(m=>({...m, tipoLabel:(TIPOS_MONTAGEM[m.tipoIdx]||TIPOS_MONTAGEM[0]).label, tipoValor:(TIPOS_MONTAGEM[m.tipoIdx]||TIPOS_MONTAGEM[0]).valor})),
+    sobreaviso
+  };
+  if(!url){ abrirModalScript(); toast('⚠️ Configure a URL do AppScript primeiro',3000); return; }
+  toast('⏳ Gerando relatório...',8000);
+  fetch(url,{ method:'POST', headers:{'Content-Type':'text/plain'}, body:JSON.stringify(payload) })
+    .then(r=>r.json())
+    .then(data=>{
+      if(data.url){ window.open(data.url,'_blank'); toast('✅ Relatório gerado!'); }
+      else toast('❌ '+(data.error||'Erro no AppScript'));
+    })
+    .catch(()=>toast('❌ Erro de conexão com AppScript'));
+}
+
+// ══════════════════════════════════════
+// MODAL APPSCRIPT
+// ══════════════════════════════════════
+function abrirModalScript(){
+  const url=localStorage.getItem('blintrack_script_url')||'';
+  document.getElementById('inp-script-url').value=url;
+  document.getElementById('modal-script').classList.add('open');
+}
+function fecharModal(){ document.getElementById('modal-script').classList.remove('open'); }
+function salvarScriptUrl(){
+  const url=document.getElementById('inp-script-url').value.trim();
+  if(!url){ toast('❌ URL inválida'); return; }
+  localStorage.setItem('blintrack_script_url',url);
+  fecharModal(); toast('✅ URL salva!');
+}
+document.getElementById('modal-script').addEventListener('click',e=>{ if(e.target===e.currentTarget)fecharModal(); });
+
+// ══════════════════════════════════════
+// LIMPAR
+// ══════════════════════════════════════
+function limparTudo(){
+  if(!confirm('Limpar todos os dados lançados?'))return;
+  tecnicos=[];viagens=[];montagens=[];sobreaviso=[];
+  renderTecnicos();renderViagens();renderMontagens();renderSobreaviso();
+  document.getElementById('import-status').style.display='none';
+  toast('🗑 Dados limpos');
+}
+</script>
+</body>
+</html>
