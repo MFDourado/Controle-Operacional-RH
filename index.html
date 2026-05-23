@@ -791,7 +791,23 @@ function exportarPDF(){
     });
     y=doc.lastAutoTable.finalY+10;
   }
-  const tRes =(h,b,f,cs)=>_tab(h,b,f,cs,PRETO,OURO,PRETO);
+  const tRes=(h,b,f,cs)=>{
+    if(!b||!b.length)return;
+    doc.autoTable({
+      startY:y,head:[h],body:b,foot:f?[f]:undefined,
+      theme:'plain',
+      styles:{font:'helvetica',fontStyle:'normal',fontSize:8.5,
+        cellPadding:{top:4,bottom:4,left:5,right:5},
+        textColor:PRETO,lineColor:LINHA,lineWidth:0.18,overflow:'linebreak'},
+      headStyles:{fillColor:PRETO,textColor:BRANCO,fontStyle:'normal',fontSize:7,
+        cellPadding:{top:4,bottom:4,left:5,right:5}},
+      footStyles:{fillColor:OURO,textColor:PRETO,fontStyle:'bold',fontSize:8.5},
+      alternateRowStyles:{fillColor:BEGE},columnStyles:cs||{},
+      margin:{left:M,right:M},showFoot:'lastPage',rowPageBreak:'avoid',
+      // SEM tableWidth — colunas controlam a largura livremente
+    });
+    y=doc.lastAutoTable.finalY+10;
+  };
   const tNorm=(h,b,f,cs)=>_tab(h,b,f,cs,null,OURO,PRETO);
   const tSob =(h,b,f,cs)=>_tab(h,b,f,cs,null,[45,45,45],BRANCO);
 
@@ -804,12 +820,12 @@ function exportarPDF(){
   const grand=nomes.reduce((s,n)=>{const r=_resultados[n];return s+r.vOs+(r.dVia*50)+(r.mont?r.mont.v:0)+(r.bon?r.bon.v:0);},0);
   tRes(['Colaborador','OS','Viagens','Montagens','Bônus','Total'],bTot,
     ['Total Geral','','','','',fmtR(grand)],
-    {0:{cellWidth:38},
-     1:{halign:'right',cellWidth:30},
-     2:{halign:'right',cellWidth:30},
-     3:{halign:'right',cellWidth:30},
-     4:{halign:'right',cellWidth:30},
-     5:{halign:'right',fontStyle:'bold',cellWidth:20}});
+    {0:{cellWidth:45},
+     1:{halign:'right',cellWidth:32},
+     2:{halign:'right',cellWidth:32},
+     3:{halign:'right',cellWidth:32},
+     4:{halign:'right',cellWidth:32},
+     5:{halign:'right',fontStyle:'bold',cellWidth:32}});
 
   // SOBREAVISO
   if(_saResultados&&_saResultados.length){
