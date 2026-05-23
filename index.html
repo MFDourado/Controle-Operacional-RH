@@ -835,7 +835,6 @@ function exportarPDF(){
       columnStyles:colStyles||{},
       margin:{left:M,right:M},
       showFoot:'lastPage',
-      tableWidth:CW,
       rowPageBreak:'avoid',
     });
     y=doc.lastAutoTable.finalY+12;
@@ -848,8 +847,6 @@ function exportarPDF(){
   // Tabela sobreaviso (footer escuro)
   function tSob(h,b,f,cs){ _tabela(h,b,f,cs,null,[45,45,45],BRANCO); }
 
-  // Larguras colunas resumo: nomes longos precisam de espaço
-  const CW_NOME = 55, CW_VAL = 24, CW_TOTAL = CW-(CW_NOME+CW_VAL*4);
 
   // ════════════════════════════════════════════════
   // 1. RESUMO
@@ -867,12 +864,12 @@ function exportarPDF(){
     ['Colaborador','OS','Viagens','Montagens','Bônus','Total'],
     bodyTot,
     ['Total Geral','','','','',fmtR(grand)],
-    {0:{cellWidth:CW_NOME},
-     1:{halign:'right',cellWidth:CW_VAL},
-     2:{halign:'right',cellWidth:CW_VAL},
-     3:{halign:'right',cellWidth:CW_VAL+4},
-     4:{halign:'right',cellWidth:CW_VAL},
-     5:{halign:'right',fontStyle:'bold',cellWidth:CW_TOTAL}}
+    {0:{cellWidth:52},
+     1:{halign:'right',cellWidth:28},
+     2:{halign:'right',cellWidth:28},
+     3:{halign:'right',cellWidth:30},
+     4:{halign:'right',cellWidth:24},
+     5:{halign:'right',fontStyle:'bold',cellWidth:16}}
   );
 
   // ════════════════════════════════════════════════
