@@ -181,13 +181,93 @@ table.sa tfoot td:not(:first-child){text-align:right}
   .topbar{padding:0 14px}
   .mont-row{grid-template-columns:1fr 1fr 60px 50px 24px}
 }
+  /* ── LOGIN ── */
+  .login-screen{position:fixed;inset:0;background:#0D0D0D;display:flex;align-items:center;justify-content:center;z-index:999}
+  .login-screen.hidden{display:none}
+  .login-box{background:#1C1C1C;border:1px solid #2E2E2E;border-radius:14px;padding:44px 44px 36px;width:420px;max-width:95vw;box-shadow:0 24px 60px rgba(0,0,0,.6)}
+  .login-logo{text-align:center;margin-bottom:10px}
+  .login-logo img{height:46px;display:inline-block}
+  .login-title{text-align:center;margin-bottom:5px}
+  .login-title strong{font-size:15px;font-weight:600;color:#fff;letter-spacing:-0.2px}
+  .login-title strong span{color:#F5B800}
+  .login-subtitle{text-align:center;font-size:12px;color:#555;margin-bottom:28px}
+  .login-field{margin-bottom:14px}
+  .login-field label{display:block;font-size:10.5px;font-weight:600;color:#666;text-transform:uppercase;letter-spacing:0.9px;margin-bottom:6px}
+  .login-field input{width:100%;background:#F9F9F9;border:1.5px solid #E0E0E0;color:#1A1A1A;font-family:'DM Sans',sans-serif;font-size:13.5px;padding:11px 14px;border-radius:8px;outline:none;transition:border-color .15s,box-shadow .15s}
+  .login-field input:focus{border-color:#F5B800;box-shadow:0 0 0 3px rgba(245,184,0,0.15)}
+  .login-btn{width:100%;background:#F5B800;color:#111;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;border:none;border-radius:8px;padding:12px;cursor:pointer;margin-top:8px;transition:opacity .15s}
+  .login-btn:hover{opacity:.88}
+  .login-err{font-size:12px;color:#FF5252;text-align:center;margin-top:10px;min-height:18px}
+  .login-forgot{text-align:center;margin-top:18px}
+  .login-forgot a{font-size:12px;color:#555;text-decoration:underline;cursor:pointer;transition:color .15s}
+  .login-forgot a:hover{color:#F5B800}
+
+  /* ── PERFIL BADGE ── */
+  .perfil-badge{display:flex;align-items:center;gap:8px;font-size:11.5px;color:rgba(255,255,255,0.55)}
+  .perfil-dot{width:7px;height:7px;border-radius:50%;background:var(--gold);flex-shrink:0}
+  .btn-logout{background:none;border:none;color:rgba(255,255,255,0.35);font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;padding:0;margin-left:8px;transition:color .15s}
+  .btn-logout:hover{color:var(--gold)}
+
+  /* ── ADMIN PANEL ── */
+  .admin-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:10px;display:none}
+  .admin-panel.visible{display:block}
+  .admin-row{display:flex;flex-wrap:wrap;gap:6px;align-items:flex-end;margin-bottom:10px}
+  .admin-row .f-grp{display:flex;flex-direction:column;gap:3px}
+  .admin-row .f-grp label{font-size:9.5px;color:var(--text3);font-weight:500;letter-spacing:0.4px;text-transform:uppercase}
+  .admin-row .f-login{flex:1;min-width:100px}
+  .admin-row .f-nome{flex:1.5;min-width:130px}
+  .admin-row .f-senha{flex:1;min-width:90px}
+  .admin-row .f-perfil{flex:0 0 95px}
+  .admin-row .f-ativo{flex:0 0 80px}
+  .admin-row input,.admin-row select{font-size:11.5px;padding:5px 7px;width:100%}
+  .btn-salvar-user{font-family:'DM Sans',sans-serif;font-size:11.5px;font-weight:600;background:var(--gold);color:var(--black);border:none;border-radius:var(--radius-sm);padding:7px 14px;cursor:pointer;white-space:nowrap;align-self:flex-end}
+  .btn-salvar-user:hover{opacity:.88}
+  .user-list{margin-top:10px;display:flex;flex-direction:column;gap:5px}
+  .user-item{display:flex;align-items:center;gap:8px;padding:7px 11px;border-radius:var(--radius-sm);background:var(--surface2);border:1px solid var(--border);font-size:12px}
+  .user-item .u-nome{font-weight:500;min-width:120px}
+  .user-item .u-login{color:var(--text3);font-size:11px;font-family:'DM Mono',monospace}
+  .u-perfil{font-size:10px;padding:2px 8px;border-radius:99px;font-weight:600}
+  .u-perfil.gestor{background:var(--gold-dim);color:#8A6800}
+  .u-perfil.rh{background:rgba(100,160,255,.15);color:#3366CC}
+  .u-perfil.tecnico{background:rgba(80,200,120,.15);color:#1E7A40}
+  .u-status{font-size:10.5px}
+  .u-status.on{color:#1E7A40}
+  .u-status.off{color:var(--text3)}
+  .user-item .spacer-u{flex:1}
 </style>
 </head>
 <body>
 
+<!-- LOGIN -->
+<div class="login-screen" id="login-screen">
+  <div class="login-box">
+    <div class="login-logo"><img src="data:image/png;base64,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" alt="Blincast"/></div>
+    <div class="login-title"><strong>Blin<span>Track</span> Operacional</strong></div>
+    <div class="login-subtitle">Acesso restrito à equipe Blincast</div>
+    <div class="login-field">
+      <label>Usuário</label>
+      <input type="text" id="l-login" placeholder="nome.sobrenome" autocomplete="username"
+        onkeydown="if(event.key==='Enter')document.getElementById('l-senha').focus()"/>
+    </div>
+    <div class="login-field">
+      <label>Senha</label>
+      <input type="password" id="l-senha" placeholder="••••••••••••" autocomplete="current-password"
+        onkeydown="if(event.key==='Enter')tentarLogin()"/>
+    </div>
+    <button class="login-btn" onclick="tentarLogin()">Entrar</button>
+    <div class="login-err" id="l-err"></div>
+    <div class="login-forgot"><a onclick="showToast('Contate o gestor para redefinir sua senha.')">Esqueci minha senha</a></div>
+  </div>
+</div>
+
+<!-- TOPBAR -->
 <div class="topbar">
   <img src="data:image/png;base64,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" alt="Blincast"/>
-  <span class="topbar-tag">Controle Operacional RH</span>
+  <div class="perfil-badge">
+    <div class="perfil-dot"></div>
+    <span id="topbar-nome">—</span>
+    <button class="btn-logout" onclick="fazerLogout()">Sair</button>
+  </div>
 </div>
 
 <div class="page">
@@ -208,6 +288,23 @@ table.sa tfoot td:not(:first-child){text-align:right}
     </div>
   </header>
 
+  <!-- ADMIN PANEL -->
+  <div class="admin-panel" id="admin-panel">
+    <p class="card-title">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Gerenciar Usuários
+    </p>
+    <div class="admin-row">
+      <div class="f-grp f-login"><label>Login</label><input type="text" id="u-login" placeholder="nome.sobrenome"/></div>
+      <div class="f-grp f-nome"><label>Nome completo</label><input type="text" id="u-nome" placeholder="Nome Sobrenome"/></div>
+      <div class="f-grp f-senha"><label>Senha</label><input type="password" id="u-senha" placeholder="••••••••"/></div>
+      <div class="f-grp f-perfil"><label>Perfil</label><select id="u-perfil"><option value="gestor">Gestor</option><option value="rh">RH</option><option value="tecnico" selected>Técnico</option></select></div>
+      <div class="f-grp f-ativo"><label>Status</label><select id="u-ativo"><option value="sim">Ativo</option><option value="nao">Inativo</option></select></div>
+      <button class="btn-salvar-user" onclick="salvarUsuario()">Salvar</button>
+    </div>
+    <div class="user-list" id="user-list"><div style="font-size:12px;color:var(--text3)">Carregando...</div></div>
+  </div>
+
   <!-- UPLOAD -->
   <div class="card">
     <p class="card-title">
@@ -224,7 +321,6 @@ table.sa tfoot td:not(:first-child){text-align:right}
   </div>
 
   <div class="two-col">
-    <!-- VIAGENS -->
     <div class="card">
       <p class="card-title">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
@@ -233,46 +329,36 @@ table.sa tfoot td:not(:first-child){text-align:right}
       <div id="viagens-container">
         <div class="viagem-row" style="border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px 9px;margin-bottom:5px;background:var(--surface2)">
           <div style="display:grid;grid-template-columns:1fr 72px 24px;gap:5px;margin-bottom:4px">
-            <input type="text" placeholder="Técnico">
-            <input type="number" min="1" placeholder="Dias">
+            <input type="text" placeholder="Técnico"><input type="number" min="1" placeholder="Dias">
             <button class="del" onclick="remover(this.closest('.viagem-row'))">×</button>
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px">
-            <input type="text" placeholder="Destino">
-            <input type="text" placeholder="Serviço realizado">
+            <input type="text" placeholder="Destino"><input type="text" placeholder="Serviço realizado">
           </div>
         </div>
       </div>
       <button class="add" onclick="addViagem()">+ viagem</button>
     </div>
-
-    <!-- MONTAGENS -->
     <div class="card">
       <p class="card-title">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
         3. Montagens / instalações
       </p>
       <div style="display:grid;grid-template-columns:1fr 1.3fr 72px 55px 24px;gap:5px;margin-bottom:4px">
-        <span class="mont-label">Técnico</span>
-        <span class="mont-label">Tipo</span>
-        <span class="mont-label">Valor R$</span>
-        <span class="mont-label">Qtd</span>
-        <span></span>
+        <span class="mont-label">Técnico</span><span class="mont-label">Tipo</span>
+        <span class="mont-label">Valor R$</span><span class="mont-label">Qtd</span><span></span>
       </div>
       <div id="montagens-container">
         <div class="mont-row">
           <input type="text" placeholder="Técnico">
           <select onchange="preencherValor(this)">
-            <option value="150">Rack HD – R$150</option>
-            <option value="75">Rack SD – R$75</option>
-            <option value="150">Rack IP – R$150</option>
-            <option value="25">Bandeja – R$25</option>
-            <option value="50">Upgrade – R$50</option>
-            <option value="150">Streamblink – R$150</option>
+            <option value="150">Rack HD – R$150</option><option value="75">Rack SD – R$75</option>
+            <option value="150">Rack IP – R$150</option><option value="25">Bandeja – R$25</option>
+            <option value="50">Upgrade – R$50</option><option value="150">Streamblink – R$150</option>
             <option value="300">Bônus Rack HD – R$300</option>
           </select>
-          <input type="number" class="val-unit" min="0" step="0.01" value="150" placeholder="R$">
-          <input type="number" min="1" value="1" placeholder="Qtd">
+          <input type="number" class="val-unit" min="0" step="0.01" value="150">
+          <input type="number" min="1" value="1">
           <button class="del" onclick="remover(this)">×</button>
         </div>
       </div>
@@ -280,7 +366,6 @@ table.sa tfoot td:not(:first-child){text-align:right}
     </div>
   </div>
 
-  <!-- BÔNUS -->
   <div class="card">
     <p class="card-title">
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
@@ -297,7 +382,6 @@ table.sa tfoot td:not(:first-child){text-align:right}
     <button class="add" onclick="addBonus()">+ bônus</button>
   </div>
 
-  <!-- SOBREAVISO -->
   <div class="card">
     <p class="card-title">
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
@@ -313,7 +397,6 @@ table.sa tfoot td:not(:first-child){text-align:right}
     <button class="primary outline" onclick="abrirModal()">⚙️ AppScript</button>
   </div>
 
-  <!-- RESULTADO -->
   <div id="resultado">
     <div class="cards-row" id="cards-resumo"></div>
     <div class="card">
@@ -330,9 +413,7 @@ table.sa tfoot td:not(:first-child){text-align:right}
       </p>
       <div style="overflow-x:auto">
         <table class="rh">
-          <thead><tr>
-            <th>Técnico</th><th>OS técnico</th><th>OS ajudante</th><th>Viagens</th><th>Montagens</th><th>Bônus</th><th>Valor total (R$)</th>
-          </tr></thead>
+          <thead><tr><th>Técnico</th><th>OS técnico</th><th>OS ajudante</th><th>Viagens</th><th>Montagens</th><th>Bônus</th><th>Valor total (R$)</th></tr></thead>
           <tbody id="tabela-body"></tbody>
           <tfoot id="tabela-foot"></tfoot>
         </table>
@@ -364,15 +445,11 @@ table.sa tfoot td:not(:first-child){text-align:right}
   </div>
 </div>
 
-<!-- MODAL -->
 <div class="modal-bg" id="modal-bg">
   <div class="modal">
-    <div class="modal-hdr">
-      <h3>⚙️ Configurar AppScript</h3>
-      <button class="del" onclick="fecharModal()">×</button>
-    </div>
+    <div class="modal-hdr"><h3>⚙️ Configurar AppScript</h3><button class="del" onclick="fecharModal()">×</button></div>
     <div class="modal-body">
-      <p>Cole a URL do seu Google Apps Script implantado. Ela é salva no navegador e usada para gerar o relatório no Google Drive.</p>
+      <p>Cole a URL do seu Google Apps Script implantado.</p>
       <p>No Apps Script: <code>Implantar → Nova implantação → App da Web</code></p>
       <input type="text" id="inp-script-url" placeholder="https://script.google.com/macros/s/.../exec"/>
     </div>
@@ -653,6 +730,7 @@ function getPeriodo(){
 // EXPORTAR PDF — completo com todos os cards
 // ═══════════════════════════════════════════════
 function exportarPDF(){
+  if(!_sessao){showToast('Faça login primeiro.');return;}
   if(!window._resumoBonif&&(!_saResultados||!_saResultados.length)){alert('Clique em Calcular antes de exportar.');return;}
   const {jsPDF}=window.jspdf;
   const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
@@ -817,6 +895,227 @@ function salvarUrl(){
 }
 document.getElementById('modal-bg').addEventListener('click',e=>{if(e.target===e.currentTarget)fecharModal();});
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.style.display='block';clearTimeout(t._t);t._t=setTimeout(()=>t.style.display='none',2200);}
+
+
+
+// ═══════════════════════════════════════════════
+// AUTH
+// ═══════════════════════════════════════════════
+let _sessao = null; // { login, nome, perfil, token }
+
+function tentarLogin() {
+  const login = document.getElementById('l-login').value.trim();
+  const senha = document.getElementById('l-senha').value;
+  const err   = document.getElementById('l-err');
+  if (!login || !senha) { err.textContent = 'Preencha login e senha.'; return; }
+  err.textContent = 'Verificando...';
+
+  const url = localStorage.getItem('blintrack_script_url');
+  if (!url) {
+    // Sem AppScript: modo demo (gestor local)
+    _sessao = { login, nome: login, perfil: 'gestor', token: login+':gestor' };
+    ativarSessao();
+    return;
+  }
+  fetch(url, { method:'POST', headers:{'Content-Type':'text/plain'},
+    body: JSON.stringify({ action:'login', login, senha }) })
+    .then(r=>r.json())
+    .then(d=>{
+      if (d.ok) {
+        _sessao = { login, nome: d.nome, perfil: d.perfil, token: d.login+':'+d.perfil };
+        ativarSessao();
+      } else {
+        err.textContent = d.erro || 'Credenciais inválidas.';
+      }
+    })
+    .catch(()=>{ err.textContent = 'Erro de conexão. Verifique o AppScript.'; });
+}
+
+function ativarSessao() {
+  document.getElementById('login-screen').classList.add('hidden');
+  document.getElementById('topbar-nome').textContent = _sessao.nome + ' (' + _sessao.perfil + ')';
+
+  // Restrições por perfil
+  if (_sessao.perfil === 'tecnico') {
+    // técnico: oculta seções de lançamento, mostra só resultado filtrado pelo nome
+    document.querySelectorAll('.card:not(#resultado-card), .two-col, .btn-row').forEach(el=>{
+      if (!el.id || el.id !== 'resultado') el.style.display='none';
+    });
+    showToast('Bem-vindo, '+_sessao.nome+'! Visualizando seus dados.');
+  } else if (_sessao.perfil === 'rh') {
+    // rh: vê tudo, mas não edita (desabilita inputs)
+    // pode exportar mas não salva manualmente
+    showToast('Bem-vindo(a), '+_sessao.nome+'!');
+  } else {
+    // gestor: acesso total + painel admin
+    document.getElementById('admin-panel').classList.add('visible');
+    carregarUsuarios();
+    showToast('Bem-vindo, '+_sessao.nome+'!');
+  }
+}
+
+function fazerLogout() {
+  _sessao = null;
+  document.getElementById('login-screen').classList.remove('hidden');
+  document.getElementById('l-login').value='';
+  document.getElementById('l-senha').value='';
+  document.getElementById('l-err').textContent='';
+  document.getElementById('topbar-nome').textContent='—';
+  document.getElementById('admin-panel').classList.remove('visible');
+  document.getElementById('resultado').style.display='none';
+}
+
+// ── USUÁRIOS ──
+function carregarUsuarios() {
+  const url = localStorage.getItem('blintrack_script_url');
+  if (!url) return;
+  fetch(url,{method:'POST',headers:{'Content-Type':'text/plain'},
+    body:JSON.stringify({action:'listarUsuarios',token:_sessao.token})})
+    .then(r=>r.json())
+    .then(d=>{
+      const list = document.getElementById('user-list');
+      if (!d.usuarios||!d.usuarios.length){list.innerHTML='<div style="font-size:12px;color:var(--text3)">Nenhum usuário.</div>';return;}
+      list.innerHTML = d.usuarios.map(u=>`
+        <div class="user-item">
+          <span style="font-weight:500">${u.nome}</span>
+          <span style="color:var(--text3);font-size:11px">${u.login}</span>
+          <span class="u-perfil ${u.perfil}">${u.perfil}</span>
+          <span style="font-size:11px;color:var(--text3)">${u.ativo==='sim'?'✓ ativo':'✗ inativo'}</span>
+          <span class="spacer-u"></span>
+          <button class="del" onclick="removerUsuario('${u.login}')" title="Remover">×</button>
+        </div>`).join('');
+    }).catch(()=>{});
+}
+
+function salvarUsuario() {
+  const url=localStorage.getItem('blintrack_script_url');
+  const login=document.getElementById('u-login').value.trim();
+  const nome=document.getElementById('u-nome').value.trim();
+  const senha=document.getElementById('u-senha').value.trim();
+  const perfil=document.getElementById('u-perfil').value;
+  const ativo=document.getElementById('u-ativo').value==='sim';
+  if(!login){showToast('Login obrigatório');return;}
+  if(!url){showToast('Configure o AppScript primeiro');return;}
+  fetch(url,{method:'POST',headers:{'Content-Type':'text/plain'},
+    body:JSON.stringify({action:'salvarUsuario',token:_sessao.token,login,nome,senha,perfil,ativo})})
+    .then(r=>r.json())
+    .then(d=>{
+      if(d.ok){showToast('✓ Usuário '+d.acao+'!');carregarUsuarios();}
+      else showToast('Erro: '+(d.erro||'falha'));
+    }).catch(()=>showToast('Erro de conexão'));
+}
+
+function removerUsuario(login) {
+  if(!confirm('Remover usuário "'+login+'"?'))return;
+  const url=localStorage.getItem('blintrack_script_url');
+  fetch(url,{method:'POST',headers:{'Content-Type':'text/plain'},
+    body:JSON.stringify({action:'removerUsuario',token:_sessao.token,login})})
+    .then(r=>r.json())
+    .then(d=>{if(d.ok){showToast('✓ Removido');carregarUsuarios();}else showToast('Erro: '+d.erro);})
+    .catch(()=>showToast('Erro de conexão'));
+}
+
+// Salva token ao exportar
+const _exportarPDFOriginal = exportarPDF;
+// Injeta token no payload do AppScript
+
+
+// ═══════════════════════════════════════════════
+// AUTH
+// ═══════════════════════════════════════════════
+let _sessao = null;
+
+function tentarLogin() {
+  const login = document.getElementById('l-login').value.trim();
+  const senha  = document.getElementById('l-senha').value;
+  const err    = document.getElementById('l-err');
+  if (!login || !senha) { err.textContent = 'Preencha usuário e senha.'; return; }
+  err.textContent = 'Verificando...';
+  const url = localStorage.getItem('blintrack_script_url');
+  if (!url) {
+    _sessao = { login, nome: login, perfil: 'gestor', token: login+':gestor' };
+    ativarSessao(); return;
+  }
+  fetch(url,{method:'POST',headers:{'Content-Type':'text/plain'},
+    body:JSON.stringify({action:'login',login,senha})})
+    .then(r=>r.json())
+    .then(d=>{
+      if(d.ok){_sessao={login,nome:d.nome,perfil:d.perfil,token:d.login+':'+d.perfil};ativarSessao();}
+      else{err.textContent=d.erro||'Credenciais inválidas.';}
+    }).catch(()=>{err.textContent='Erro de conexão. Verifique o AppScript.';});
+}
+
+function ativarSessao() {
+  document.getElementById('login-screen').classList.add('hidden');
+  document.getElementById('topbar-nome').textContent = _sessao.nome+' ('+_sessao.perfil+')';
+  if (_sessao.perfil === 'gestor') {
+    document.getElementById('admin-panel').classList.add('visible');
+    carregarUsuarios();
+  }
+  showToast('Bem-vindo(a), '+_sessao.nome+'!');
+}
+
+function fazerLogout() {
+  _sessao = null;
+  document.getElementById('login-screen').classList.remove('hidden');
+  document.getElementById('l-login').value='';
+  document.getElementById('l-senha').value='';
+  document.getElementById('l-err').textContent='';
+  document.getElementById('topbar-nome').textContent='—';
+  document.getElementById('admin-panel').classList.remove('visible');
+  document.getElementById('resultado').style.display='none';
+}
+
+function carregarUsuarios() {
+  const url=localStorage.getItem('blintrack_script_url');
+  const list=document.getElementById('user-list');
+  if(!url){list.innerHTML='<div style="font-size:12px;color:var(--text3)">Configure o AppScript para ver usuários.</div>';return;}
+  fetch(url,{method:'POST',headers:{'Content-Type':'text/plain'},
+    body:JSON.stringify({action:'listarUsuarios',token:_sessao.token})})
+    .then(r=>r.json())
+    .then(d=>{
+      if(!d.usuarios||!d.usuarios.length){list.innerHTML='<div style="font-size:12px;color:var(--text3)">Nenhum usuário.</div>';return;}
+      list.innerHTML=d.usuarios.map(u=>`
+        <div class="user-item">
+          <span class="u-nome">${u.nome}</span>
+          <span class="u-login">${u.login}</span>
+          <span class="u-perfil ${u.perfil}">${u.perfil}</span>
+          <span class="u-status ${u.ativo==='sim'?'on':'off'}">${u.ativo==='sim'?'● ativo':'○ inativo'}</span>
+          <span class="spacer-u"></span>
+          <button class="del" onclick="removerUsuario('${u.login}')" title="Remover">×</button>
+        </div>`).join('');
+    }).catch(()=>{list.innerHTML='<div style="font-size:12px;color:var(--danger)">Erro ao carregar.</div>';});
+}
+
+function salvarUsuario() {
+  const url=localStorage.getItem('blintrack_script_url');
+  const login=document.getElementById('u-login').value.trim();
+  const nome=document.getElementById('u-nome').value.trim();
+  const senha=document.getElementById('u-senha').value.trim();
+  const perfil=document.getElementById('u-perfil').value;
+  const ativo=document.getElementById('u-ativo').value==='sim';
+  if(!login){showToast('Login obrigatório');return;}
+  if(!url){showToast('Configure o AppScript primeiro');return;}
+  fetch(url,{method:'POST',headers:{'Content-Type':'text/plain'},
+    body:JSON.stringify({action:'salvarUsuario',token:_sessao.token,login,nome,senha,perfil,ativo})})
+    .then(r=>r.json())
+    .then(d=>{
+      if(d.ok){showToast('✓ Usuário '+d.acao+'!');carregarUsuarios();
+        document.getElementById('u-login').value='';document.getElementById('u-nome').value='';
+        document.getElementById('u-senha').value='';}
+      else showToast('Erro: '+(d.erro||'falha'));
+    }).catch(()=>showToast('Erro de conexão'));
+}
+
+function removerUsuario(login) {
+  if(!confirm('Remover usuário "'+login+'"?'))return;
+  const url=localStorage.getItem('blintrack_script_url');
+  fetch(url,{method:'POST',headers:{'Content-Type':'text/plain'},
+    body:JSON.stringify({action:'removerUsuario',token:_sessao.token,login})})
+    .then(r=>r.json())
+    .then(d=>{if(d.ok){showToast('✓ Removido');carregarUsuarios();}else showToast('Erro: '+d.erro);})
+    .catch(()=>showToast('Erro de conexão'));
+}
 
 // COPIAR
 function copiarBonif(){
