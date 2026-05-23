@@ -421,6 +421,7 @@ table.sa tfoot td:not(:first-child){text-align:right}
       </div>
       <button class="copy-btn" onclick="copiarBonif()">Copiar resumo de bonificação</button>
       <button class="copy-btn export" onclick="exportarPDF()">⬇ Exportar PDF</button>
+      <button class="copy-btn" onclick="exportarWord()" style="margin-top:6px;background:var(--surface2);color:var(--text);border:1px solid var(--border2);font-weight:500">⬇ Exportar Word</button>
     </div>
     <div class="card" id="sa-resultado-card" style="display:none">
       <p class="card-title">
@@ -905,6 +906,174 @@ function exportarPDF(){
     const url=URL.createObjectURL(pdfBlob);
     const a=document.createElement('a');a.href=url;a.download=fileName;a.click();
     setTimeout(()=>URL.revokeObjectURL(url),5000);
+  }
+}
+
+
+function exportarWord(){
+  if(!_sessao){showToast('Faça login primeiro.');return;}
+  if(!window._nomesFilt||!window._nomesFilt.length){alert('Clique em Calcular antes de exportar.');return;}
+
+  const nomes   = window._nomesFilt || [];
+  const periodo = getPeriodo();
+  const hoje    = new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'});
+
+  function fR(v){ return 'R$ '+Number(v).toFixed(2).replace('.',','); }
+
+  // ── CSS embutido para Word ──────────────────────────────────
+  const css = `
+    body { font-family: Arial, sans-serif; font-size: 10pt; color: #1a1a1a; margin: 40px; }
+    h1 { font-size: 14pt; font-weight: normal; margin: 0 0 4px; }
+    .sub { font-size: 8pt; color: #888; margin: 0 0 16px; }
+    .sec-line { border: none; border-top: 1.5px solid #F5B800; margin: 20px 0 8px; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: 9pt; }
+    thead tr { background: #111111; color: #ffffff; }
+    thead th { padding: 6px 8px; text-align: left; font-weight: normal; font-size: 8pt; }
+    thead th.r { text-align: right; }
+    tbody tr:nth-child(even) { background: #FFFBEE; }
+    tbody tr:nth-child(odd)  { background: #ffffff; }
+    tbody td { padding: 5px 8px; border-bottom: 1px solid #E8E6E2; }
+    tbody td.r { text-align: right; }
+    tbody td.bold { font-weight: bold; text-align: right; }
+    tfoot tr { background: #F5B800; }
+    tfoot td { padding: 6px 8px; font-weight: bold; }
+    tfoot td.r { text-align: right; }
+    .sob-foot tr { background: #333333 !important; color: #ffffff; }
+    .sob-foot td { padding: 6px 8px; font-weight: bold; color: #ffffff; }
+    .sob-foot td.r { text-align: right; color: #ffffff; }
+    .header-table { width: 100%; margin-bottom: 24px; }
+    .logo-cell { font-size: 22pt; font-weight: bold; color: #ffffff; background: #111111; padding: 10px 16px; width: 50%; }
+    .period-cell { background: #111111; text-align: right; padding: 10px 16px; vertical-align: bottom; }
+    .period-cell .p1 { font-size: 9pt; color: #cccccc; display: block; }
+    .period-cell .p2 { font-size: 8pt; color: #888888; display: block; }
+  `;
+
+  // ── CABEÇALHO ───────────────────────────────────────────────
+  let body = `
+  <table class="header-table">
+    <tr>
+      <td class="logo-cell">Blincast &#9654;</td>
+      <td class="period-cell">
+        <span class="p1">${periodo}</span>
+        <span class="p2">Emitido em ${hoje}</span>
+      </td>
+    </tr>
+  </table>`;
+
+  // ── RESUMO ──────────────────────────────────────────────────
+  body += `<h1>Resumo por Colaborador</h1><p class="sub">Totais do período: ${periodo}</p>`;
+  body += `<table><thead><tr>
+    <th>Colaborador</th><th class="r">OS</th><th class="r">Viagens</th>
+    <th class="r">Montagens</th><th class="r">Bônus</th><th class="r">Total</th>
+  </tr></thead><tbody>`;
+  let grand = 0;
+  nomes.forEach(n=>{
+    const r=_resultados[n];
+    const tot=r.vOs+(r.dVia*50)+(r.mont?r.mont.v:0)+(r.bon?r.bon.v:0);
+    grand+=tot;
+    body+=`<tr><td>${n}</td><td class="r">${fR(r.vOs)}</td><td class="r">${fR(r.dVia*50)}</td>
+      <td class="r">${fR(r.mont?r.mont.v:0)}</td><td class="r">${fR(r.bon?r.bon.v:0)}</td>
+      <td class="bold">${fR(tot)}</td></tr>`;
+  });
+  body+=`</tbody><tfoot><tr><td>Total Geral</td><td></td><td></td><td></td><td></td>
+    <td class="r">${fR(grand)}</td></tr></tfoot></table>`;
+
+  // ── SOBREAVISO ──────────────────────────────────────────────
+  if(_saResultados&&_saResultados.length){
+    const totH=_saResultados.reduce((s,r)=>s+r.totalH,0);
+    body+=`<h1>Sobreaviso — Horas do Período</h1><p class="sub">10 horas por dia de plantão</p>`;
+    body+=`<table class="sob-foot"><thead><tr>
+      <th>Técnico</th><th>Datas de Plantão</th><th class="r">Total de Horas</th>
+    </tr></thead><tbody>`;
+    _saResultados.forEach(s=>{
+      body+=`<tr><td>${s.nome}</td><td>${s.datas}</td><td class="r">${s.totalH}h</td></tr>`;
+    });
+    body+=`</tbody><tfoot class="sob-foot"><tr>
+      <td>Total</td><td></td><td class="r">${totH}h</td>
+    </tr></tfoot></table>`;
+  }
+
+  // ── OS ───────────────────────────────────────────────────────
+  body+=`<hr class="sec-line"><h1>Bonificação por OS</h1>
+    <p class="sub">R$ 4,00 / OS técnico  ·  R$ 2,00 / OS ajudante  ·  R$ 20,00 fins de semana  ·  R$ 150,00 Streamblink</p>`;
+  body+=`<table><thead><tr>
+    <th>Técnico</th><th class="r">OS Técnico</th><th class="r">OS Ajudante</th><th class="r">Valor</th>
+  </tr></thead><tbody>`;
+  let totOS=0;
+  nomes.forEach(n=>{
+    const r=_resultados[n];totOS+=r.vOs;
+    body+=`<tr><td>${n}</td><td class="r">${r.osTec}</td><td class="r">${r.osAj}</td><td class="r">${fR(r.vOs)}</td></tr>`;
+  });
+  body+=`</tbody><tfoot><tr><td>Total</td><td></td><td></td><td class="r">${fR(totOS)}</td></tr></tfoot></table>`;
+
+  // ── VIAGENS ──────────────────────────────────────────────────
+  const bVia=[];let totVia=0;
+  nomes.forEach(n=>{const r=_resultados[n];
+    if(r.dVia>0&&r.vDetalhes&&r.vDetalhes.length)
+      r.vDetalhes.forEach(v=>{const val=v.dias*50;totVia+=val;bVia.push([n,v.destino||'—',v.servico||'—',v.dias+'d',fR(val)]);});
+  });
+  if(bVia.length){
+    body+=`<hr class="sec-line"><h1>Viagens</h1><p class="sub">R$ 50,00 por dia</p>`;
+    body+=`<table><thead><tr>
+      <th>Técnico</th><th>Destino</th><th>Serviço</th><th class="r">Dias</th><th class="r">Valor</th>
+    </tr></thead><tbody>`;
+    bVia.forEach(v=>{body+=`<tr><td>${v[0]}</td><td>${v[1]}</td><td>${v[2]}</td><td class="r">${v[3]}</td><td class="r">${v[4]}</td></tr>`;});
+    body+=`</tbody><tfoot><tr><td>Total</td><td></td><td></td><td></td><td class="r">${fR(totVia)}</td></tr></tfoot></table>`;
+  }
+
+  // ── MONTAGENS ────────────────────────────────────────────────
+  const bMont=[];let totMont=0;
+  nomes.forEach(n=>{const r=_resultados[n];
+    if(r.mont&&r.mont.v>0){r.mont.desc.forEach(d=>bMont.push([n,d]));totMont+=r.mont.v;}
+  });
+  if(bMont.length){
+    body+=`<hr class="sec-line"><h1>Montagens / Instalações</h1>`;
+    body+=`<table><thead><tr><th>Técnico</th><th>Item</th><th class="r">Valor</th></tr></thead><tbody>`;
+    bMont.forEach(m=>{body+=`<tr><td>${m[0]}</td><td>${m[1]}</td><td class="r"></td></tr>`;});
+    body+=`</tbody><tfoot><tr><td>Total</td><td></td><td class="r">${fR(totMont)}</td></tr></tfoot></table>`;
+  }
+
+  // ── BÔNUS ────────────────────────────────────────────────────
+  const bBon=[];let totBon=0;
+  nomes.forEach(n=>{const r=_resultados[n];
+    if(r.bon&&r.bon.v>0){r.bon.desc.forEach(d=>bBon.push([n,d]));totBon+=r.bon.v;}
+  });
+  if(bBon.length){
+    body+=`<hr class="sec-line"><h1>Bônus de Performance</h1>`;
+    body+=`<table><thead><tr><th>Técnico</th><th>Motivo</th><th class="r">Valor</th></tr></thead><tbody>`;
+    bBon.forEach(b=>{body+=`<tr><td>${b[0]}</td><td>${b[1]}</td><td class="r"></td></tr>`;});
+    body+=`</tbody><tfoot><tr><td>Total</td><td></td><td class="r">${fR(totBon)}</td></tr></tfoot></table>`;
+  }
+
+  // ── RODAPÉ ───────────────────────────────────────────────────
+  body+=`<p style="font-size:8pt;color:#aaa;margin-top:32px;border-top:1px solid #eee;padding-top:8px;">
+    Blincast — Calculadora Gestão Operacional &nbsp;·&nbsp; ${hoje}</p>`;
+
+  // ── MONTAR HTML WORD ─────────────────────────────────────────
+  const docHtml = `<html xmlns:o='urn:schemas-microsoft-com:office:office'
+    xmlns:w='urn:schemas-microsoft-com:office:word'
+    xmlns='http://www.w3.org/TR/REC-html40'>
+  <head>
+    <meta charset='utf-8'>
+    <title>Gestão Operacional — ${periodo}</title>
+    <!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View></w:WordDocument></xml><![endif]-->
+    <style>${css}</style>
+  </head>
+  <body>${body}</body></html>`;
+
+  const blob = new Blob([docHtml],{type:'application/msword;charset=utf-8'});
+  const fileName = 'Gestao_Operacional_'+periodo.replace(/[^a-zA-Z0-9]/g,'_')+'.doc';
+
+  if(window.showSaveFilePicker){
+    window.showSaveFilePicker({
+      suggestedName: fileName,
+      types:[{description:'Word Document',accept:{'application/msword':['.doc']}}]
+    }).then(fh=>fh.createWritable()).then(w=>{w.write(blob);return w;}).then(w=>w.close())
+    .catch(()=>{ const u=URL.createObjectURL(blob);const a=document.createElement('a');a.href=u;a.download=fileName;a.click();setTimeout(()=>URL.revokeObjectURL(u),5000); });
+  } else {
+    const u=URL.createObjectURL(blob);
+    const a=document.createElement('a');a.href=u;a.download=fileName;a.click();
+    setTimeout(()=>URL.revokeObjectURL(u),5000);
   }
 }
 
