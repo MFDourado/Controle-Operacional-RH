@@ -463,15 +463,17 @@ table.sa tfoot td:not(:first-child){text-align:right}
 <div class="toast" id="toast"></div>
 
 <script>
-// localStorage fallback (Edge Tracking Prevention safe)
-var _scriptUrlCache = '';
-function getScriptUrl() {
-  try { return localStorage.getItem('blintrack_script_url') || _scriptUrlCache; }
-  catch(e) { return _scriptUrlCache; }
-}
+// Storage fallback — safe against Edge Tracking Prevention
+var _scriptUrlCache = (function(){
+  try { return localStorage.getItem('blintrack_script_url') || ''; } catch(e){}
+  try { return sessionStorage.getItem('blintrack_script_url') || ''; } catch(e){}
+  return '';
+})();
+function getScriptUrl() { return _scriptUrlCache; }
 function setScriptUrl(url) {
   _scriptUrlCache = url;
-  try { localStorage.setItem('blintrack_script_url', url); } catch(e) {}
+  try { localStorage.setItem('blintrack_script_url', url); } catch(e){}
+  try { sessionStorage.setItem('blintrack_script_url', url); } catch(e){}
 }
 document.getElementById('data-hoje').textContent=new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'});
 (function(){
@@ -974,7 +976,7 @@ function exportarPDF(){
     doc.text('Página '+i+' de '+pgCount, W-M, 291, {align:'right'});
   }
 
-  doc.save('Gestao_Operacional_'+periodo.replace(/\/g,'').replace(/\//g,'-').replace(/ /g,'_')+'.pdf');
+  doc.save('Gestao_Operacional_'+periodo.replace(/[^a-zA-Z0-9]/g,'_')+'.pdf');
 }
 
 
