@@ -882,6 +882,7 @@ function exportarPDF(){
 
   // ── 2. SOBREAVISO ──────────────────────────────────────────
   if(_saResultados&&_saResultados.length){
+    secHR();
     secTitulo('Sobreaviso — Horas do Período','10 horas por dia de plantão');
     const colsSob=[{w:52,align:'left',header:'Técnico'},{w:CW-92,align:'left',header:'Datas de Plantão'},{w:40,align:'right',header:'Total de Horas'}];
     const rowsSob=_saResultados.map(r=>[r.nome,r.datas,r.totalH+'h']);
