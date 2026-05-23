@@ -462,6 +462,16 @@ table.sa tfoot td:not(:first-child){text-align:right}
 <div class="toast" id="toast"></div>
 
 <script>
+// localStorage fallback (Edge Tracking Prevention safe)
+var _scriptUrlCache = '';
+function getScriptUrl() {
+  try { return localStorage.getItem('blintrack_script_url') || _scriptUrlCache; }
+  catch(e) { return _scriptUrlCache; }
+}
+function setScriptUrl(url) {
+  _scriptUrlCache = url;
+  try { localStorage.setItem('blintrack_script_url', url); } catch(e) {}
+}
 document.getElementById('data-hoje').textContent=new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'});
 (function(){
   const hoje=new Date(),ini=new Date(hoje);ini.setDate(ini.getDate()-30);
@@ -951,7 +961,7 @@ function exportarPDF(){
 
 // MODAL
 function abrirModal(){
-  const url=localStorage.getItem('blintrack_script_url')||'';
+  const url=getScriptUrl()||'';
   document.getElementById('inp-script-url').value=url;
   document.getElementById('modal-bg').classList.add('open');
 }
@@ -959,7 +969,7 @@ function fecharModal(){document.getElementById('modal-bg').classList.remove('ope
 function salvarUrl(){
   const url=document.getElementById('inp-script-url').value.trim();
   if(!url){showToast('URL inválida');return;}
-  localStorage.setItem('blintrack_script_url',url);fecharModal();showToast('✓ URL salva');
+  setScriptUrl(url);fecharModal();showToast('✓ URL salva');
 }
 document.getElementById('modal-bg').addEventListener('click',e=>{if(e.target===e.currentTarget)fecharModal();});
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.style.display='block';clearTimeout(t._t);t._t=setTimeout(()=>t.style.display='none',2200);}
@@ -968,124 +978,6 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 
 // ═══════════════════════════════════════════════
 // AUTH
-// ═══════════════════════════════════════════════
-let _sessao = null; // { login, nome, perfil, token }
-
-function tentarLogin() {
-  const login = document.getElementById('l-login').value.trim();
-  const senha = document.getElementById('l-senha').value;
-  const err   = document.getElementById('l-err');
-  if (!login || !senha) { err.textContent = 'Preencha login e senha.'; return; }
-  err.textContent = 'Verificando...';
-
-  const url = localStorage.getItem('blintrack_script_url');
-  if (!url) {
-    // Sem AppScript: modo demo (gestor local)
-    _sessao = { login, nome: login, perfil: 'gestor', token: login+':gestor' };
-    ativarSessao();
-    return;
-  }
-  fetch(url, { method:'POST', headers:{'Content-Type':'text/plain'},
-    body: JSON.stringify({ action:'login', login, senha }) })
-    .then(r=>r.json())
-    .then(d=>{
-      if (d.ok) {
-        _sessao = { login, nome: d.nome, perfil: d.perfil, token: d.login+':'+d.perfil };
-        ativarSessao();
-      } else {
-        err.textContent = d.erro || 'Credenciais inválidas.';
-      }
-    })
-    .catch(()=>{ err.textContent = 'Erro de conexão. Verifique o AppScript.'; });
-}
-
-function ativarSessao() {
-  document.getElementById('login-screen').classList.add('hidden');
-  document.getElementById('topbar-nome').textContent = _sessao.nome + ' (' + _sessao.perfil + ')';
-
-  // Restrições por perfil
-  if (_sessao.perfil === 'tecnico') {
-    // técnico: oculta seções de lançamento, mostra só resultado filtrado pelo nome
-    document.querySelectorAll('.card:not(#resultado-card), .two-col, .btn-row').forEach(el=>{
-      if (!el.id || el.id !== 'resultado') el.style.display='none';
-    });
-    showToast('Bem-vindo, '+_sessao.nome+'! Visualizando seus dados.');
-  } else if (_sessao.perfil === 'rh') {
-    // rh: vê tudo, mas não edita (desabilita inputs)
-    // pode exportar mas não salva manualmente
-    showToast('Bem-vindo(a), '+_sessao.nome+'!');
-  } else {
-    // gestor: acesso total + painel admin
-    document.getElementById('admin-panel').classList.add('visible');
-    carregarUsuarios();
-    showToast('Bem-vindo, '+_sessao.nome+'!');
-  }
-}
-
-function fazerLogout() {
-  _sessao = null;
-  document.getElementById('login-screen').classList.remove('hidden');
-  document.getElementById('l-login').value='';
-  document.getElementById('l-senha').value='';
-  document.getElementById('l-err').textContent='';
-  document.getElementById('topbar-nome').textContent='—';
-  document.getElementById('admin-panel').classList.remove('visible');
-  document.getElementById('resultado').style.display='none';
-}
-
-// ── USUÁRIOS ──
-function carregarUsuarios() {
-  const url = localStorage.getItem('blintrack_script_url');
-  if (!url) return;
-  fetch(url,{method:'POST',headers:{'Content-Type':'text/plain'},
-    body:JSON.stringify({action:'listarUsuarios',token:_sessao.token})})
-    .then(r=>r.json())
-    .then(d=>{
-      const list = document.getElementById('user-list');
-      if (!d.usuarios||!d.usuarios.length){list.innerHTML='<div style="font-size:12px;color:var(--text3)">Nenhum usuário.</div>';return;}
-      list.innerHTML = d.usuarios.map(u=>`
-        <div class="user-item">
-          <span style="font-weight:500">${u.nome}</span>
-          <span style="color:var(--text3);font-size:11px">${u.login}</span>
-          <span class="u-perfil ${u.perfil}">${u.perfil}</span>
-          <span style="font-size:11px;color:var(--text3)">${u.ativo==='sim'?'✓ ativo':'✗ inativo'}</span>
-          <span class="spacer-u"></span>
-          <button class="del" onclick="removerUsuario('${u.login}')" title="Remover">×</button>
-        </div>`).join('');
-    }).catch(()=>{});
-}
-
-function salvarUsuario() {
-  const url=localStorage.getItem('blintrack_script_url');
-  const login=document.getElementById('u-login').value.trim();
-  const nome=document.getElementById('u-nome').value.trim();
-  const senha=document.getElementById('u-senha').value.trim();
-  const perfil=document.getElementById('u-perfil').value;
-  const ativo=document.getElementById('u-ativo').value==='sim';
-  if(!login){showToast('Login obrigatório');return;}
-  if(!url){showToast('Configure o AppScript primeiro');return;}
-  fetch(url,{method:'POST',headers:{'Content-Type':'text/plain'},
-    body:JSON.stringify({action:'salvarUsuario',token:_sessao.token,login,nome,senha,perfil,ativo})})
-    .then(r=>r.json())
-    .then(d=>{
-      if(d.ok){showToast('✓ Usuário '+d.acao+'!');carregarUsuarios();}
-      else showToast('Erro: '+(d.erro||'falha'));
-    }).catch(()=>showToast('Erro de conexão'));
-}
-
-function removerUsuario(login) {
-  if(!confirm('Remover usuário "'+login+'"?'))return;
-  const url=localStorage.getItem('blintrack_script_url');
-  fetch(url,{method:'POST',headers:{'Content-Type':'text/plain'},
-    body:JSON.stringify({action:'removerUsuario',token:_sessao.token,login})})
-    .then(r=>r.json())
-    .then(d=>{if(d.ok){showToast('✓ Removido');carregarUsuarios();}else showToast('Erro: '+d.erro);})
-    .catch(()=>showToast('Erro de conexão'));
-}
-
-// Salva token ao exportar
-const _exportarPDFOriginal = exportarPDF;
-// Injeta token no payload do AppScript
 
 
 // ═══════════════════════════════════════════════
@@ -1099,7 +991,7 @@ function tentarLogin() {
   const err    = document.getElementById('l-err');
   if (!login || !senha) { err.textContent = 'Preencha usuário e senha.'; return; }
   err.textContent = 'Verificando...';
-  const url = localStorage.getItem('blintrack_script_url');
+  const url = getScriptUrl();
   if (!url) {
     _sessao = { login, nome: login, perfil: 'gestor', token: login+':gestor' };
     ativarSessao(); return;
@@ -1135,7 +1027,7 @@ function fazerLogout() {
 }
 
 function carregarUsuarios() {
-  const url=localStorage.getItem('blintrack_script_url');
+  const url=getScriptUrl();
   const list=document.getElementById('user-list');
   if(!url){list.innerHTML='<div style="font-size:12px;color:var(--text3)">Configure o AppScript para ver usuários.</div>';return;}
   fetch(url,{method:'POST',headers:{'Content-Type':'text/plain'},
@@ -1156,7 +1048,7 @@ function carregarUsuarios() {
 }
 
 function salvarUsuario() {
-  const url=localStorage.getItem('blintrack_script_url');
+  const url=getScriptUrl();
   const login=document.getElementById('u-login').value.trim();
   const nome=document.getElementById('u-nome').value.trim();
   const senha=document.getElementById('u-senha').value.trim();
@@ -1169,7 +1061,8 @@ function salvarUsuario() {
     .then(r=>r.json())
     .then(d=>{
       if(d.ok){showToast('✓ Usuário '+d.acao+'!');carregarUsuarios();
-        document.getElementById('u-login').value='';document.getElementById('u-nome').value='';
+        document.getElementById('u-login').value='';
+        document.getElementById('u-nome').value='';
         document.getElementById('u-senha').value='';}
       else showToast('Erro: '+(d.erro||'falha'));
     }).catch(()=>showToast('Erro de conexão'));
@@ -1177,13 +1070,14 @@ function salvarUsuario() {
 
 function removerUsuario(login) {
   if(!confirm('Remover usuário "'+login+'"?'))return;
-  const url=localStorage.getItem('blintrack_script_url');
+  const url=getScriptUrl();
   fetch(url,{method:'POST',headers:{'Content-Type':'text/plain'},
     body:JSON.stringify({action:'removerUsuario',token:_sessao.token,login})})
     .then(r=>r.json())
     .then(d=>{if(d.ok){showToast('✓ Removido');carregarUsuarios();}else showToast('Erro: '+d.erro);})
     .catch(()=>showToast('Erro de conexão'));
 }
+
 
 // COPIAR
 function copiarBonif(){
