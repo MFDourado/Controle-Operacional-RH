@@ -307,6 +307,20 @@ table.sa tfoot td:not(:first-child){text-align:right}
     <div class="user-list" id="user-list"><div style="font-size:12px;color:var(--text3)">Carregando...</div></div>
   </div>
 
+  <!-- MÉTRICAS OS -->
+  <div class="card">
+    <p class="card-title">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+      Valores por OS
+      <span style="font-weight:400;color:var(--text3);text-transform:none;letter-spacing:0;font-size:10px;margin-left:4px">— usados no cálculo</span>
+    </p>
+    <table class="metrics-table">
+      <thead><tr><th>Tipo</th><th style="text-align:right">Valor</th><th></th></tr></thead>
+      <tbody id="met-tbody"></tbody>
+    </table>
+    <button class="add" onclick="addMetrica()" style="margin-top:4px">+ adicionar tipo</button>
+  </div>
+
   <!-- UPLOAD -->
   <div class="card">
     <p class="card-title">
@@ -476,6 +490,7 @@ function setScriptUrl(url) {
   try { localStorage.setItem('blintrack_script_url', url); } catch(e){}
   try { sessionStorage.setItem('blintrack_script_url', url); } catch(e){}
 }
+renderMetricas();
 document.getElementById('data-hoje').textContent=new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'});
 (function(){
   const hoje=new Date(),ini=new Date(hoje);ini.setDate(ini.getDate()-30);
@@ -570,6 +585,45 @@ function atualizarSaTotal(bloco){const qtd=bloco.querySelectorAll('.sa-data-tag'
 function mostrarErro(m){const e=document.getElementById('erro-msg');e.textContent=m;e.style.display='block';}
 
 // CALCULAR
+
+// ── MÉTRICAS DE OS ──────────────────────────────────────────
+let _metricas = [
+  { id:'os_tec',   nome:'OS Técnico (semana)',        valor:4,   fixo:true  },
+  { id:'os_aj',    nome:'OS Ajudante (semana)',        valor:2,   fixo:true  },
+  { id:'os_fds',   nome:'OS Técnico (fim de semana)', valor:20,  fixo:true  },
+  { id:'os_aj_fds',nome:'OS Ajudante (fim de semana)',valor:10,  fixo:true  },
+  { id:'stream',   nome:'Streamblink',                 valor:150, fixo:true  },
+];
+
+function getMetrica(id){ const m=_metricas.find(x=>x.id===id); return m?m.valor:0; }
+function renderMetricas(){
+  const tbody=document.getElementById('met-tbody');
+  if(!tbody)return;
+  tbody.innerHTML=_metricas.map((m,i)=>`
+    <tr>
+      <td><input class="met-nome" value="${m.nome}" oninput="_metricas[${i}].nome=this.value" placeholder="Nome do tipo"/></td>
+      <td style="text-align:right">
+        <span style="color:var(--text3);font-size:11px;margin-right:2px">R$</span>
+        <input class="met-val" type="number" min="0" step="0.01" value="${m.valor}"
+          oninput="_metricas[${i}].valor=parseFloat(this.value)||0"/>
+      </td>
+      <td style="text-align:center">
+        ${m.fixo?`<span class="met-tag">base</span>`:`<button class="del" onclick="removerMetrica(${i})" title="Remover">×</button>`}
+      </td>
+    </tr>`).join('');
+}
+function removerMetrica(i){
+  _metricas.splice(i,1);
+  renderMetricas();
+}
+function addMetrica(){
+  _metricas.push({id:'custom_'+Date.now(),nome:'Novo tipo',valor:0,fixo:false});
+  renderMetricas();
+  // focus last nome input
+  const inputs=document.querySelectorAll('.met-nome');
+  if(inputs.length)inputs[inputs.length-1].focus();
+}
+
 function calcular(){
   document.getElementById('erro-msg').style.display='none';
   if(!_dadosAta){mostrarErro('Selecione o arquivo .xlsx da ata antes de calcular.');return;}
@@ -618,7 +672,8 @@ function calcular(){
   function get(n){if(!dados[n])dados[n]={osTec:0,osAj:0,vOs:0};return dados[n];}
   for(const r of registros){
     const fds=ehFds(r.dtC),str=ehStream(r.prob);
-    const vt=str?150:fds?VF:VT,va=str?0:fds?10:VA;
+    const vt=str?getMetrica('stream'):fds?getMetrica('os_fds'):getMetrica('os_tec');
+    const va=str?0:fds?getMetrica('os_aj_fds'):getMetrica('os_aj');
     get(r.tec).osTec++;get(r.tec).vOs+=vt;
     for(const aj of r.ajs){get(aj).osAj++;get(aj).vOs+=va;}
   }
@@ -896,7 +951,7 @@ function exportarPDF(){
 
   // ── 3. OS ──────────────────────────────────────────────────
   secHR();
-  secTitulo('Bonificação por OS','R$ 4,00 / OS técnico  ·  R$ 2,00 / OS ajudante  ·  R$ 20,00 fins de semana  ·  R$ 150,00 Streamblink');
+  secTitulo('Bonificação por OS',_metricas.map(m=>'R$ '+m.valor.toFixed(2).replace('.',',')+'  '+m.nome).join('  ·  '));
   const colsOS=[{w:70,align:'left',header:'Técnico'},{w:36,align:'right',header:'OS Técnico'},{w:36,align:'right',header:'OS Ajudante'},{w:36,align:'right',header:'Valor'}];
   const rowsOS=nomes.map(n=>{const r=_resultados[n];return[n,String(r.osTec),String(r.osAj),fmtR(r.vOs)];});
   const totOS=nomes.reduce((s,n)=>s+(_resultados[n].vOs||0),0);
