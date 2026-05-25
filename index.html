@@ -480,9 +480,11 @@ table.sa tfoot td:not(:first-child){text-align:right}
 <script>
 // Storage fallback — safe against Edge Tracking Prevention
 var _scriptUrlCache = (function(){
-  try { return localStorage.getItem('blintrack_script_url') || ''; } catch(e){}
-  try { return sessionStorage.getItem('blintrack_script_url') || ''; } catch(e){}
-  return '';
+  // URL padrão embutida
+  const DEFAULT = 'https://script.google.com/macros/s/AKfycbzmyem0EdTK5SkHEYs3x25ssehIT44NORJPXuKTjInMYi87MS7MuaYX9ryhAXhVY0kP/exec';
+  try { return localStorage.getItem('blintrack_script_url') || DEFAULT; } catch(e){}
+  try { return sessionStorage.getItem('blintrack_script_url') || DEFAULT; } catch(e){}
+  return DEFAULT;
 })();
 function getScriptUrl() { return _scriptUrlCache; }
 function setScriptUrl(url) {
