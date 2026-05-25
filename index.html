@@ -517,7 +517,7 @@ function preencherValor(sel){
 
 // HELPERS
 function primNome(s){return(s||'').toString().split(/[,\/]/)[0].trim();}
-function ajudantes(s){return(s||'').toString().split(/[,e\/]/).map(p=>p.trim().split(' ')[0].trim()).filter(p=>p.length>1).slice(1);}
+function ajudantes(s){return(s||'').toString().split(/[,\/]/).map(p=>p.trim()).filter(p=>p.length>1).slice(1);}
 function ehFds(d){if(!d)return false;const x=(d instanceof Date)?d:new Date(d);return[0,6].includes(x.getDay?x.getDay():x.getUTCDay());}
 function ehStream(p){return/streamblink/i.test((p||'').toString());}
 function ehIgn(n){return!n||n.length<2;}
@@ -574,7 +574,7 @@ function calcular(){
   document.getElementById('erro-msg').style.display='none';
   if(!_dadosAta){mostrarErro('Selecione o arquivo .xlsx da ata antes de calcular.');return;}
   const rows=_dadosAta,registros=[],osVistas=new Set();
-  let idxOs=0,idxCli=1,idxProb=3,idxTec=4,idxAj=5,idxSt=6,idxDt=10;
+  let idxOs=0,idxCli=1,idxProb=3,idxTec=4,idxAjs=[],idxSt=6,idxDt=10;
   for(let i=0;i<rows.length;i++){
     const r=rows[i],j=r.join('|').toLowerCase();
     if(j.includes('tecnico')||j.includes('técnico')||j.includes('no os')){
@@ -584,7 +584,7 @@ function calcular(){
         else if(s==='cliente')idxCli=idx;
         else if(s==='problema'||s==='descricao'||s==='descrição')idxProb=idx;
         else if(s==='tecnico'||s==='técnico')idxTec=idx;
-        else if(s==='ajudante')idxAj=idx;
+        else if(s.includes('ajudante'))idxAjs.push(idx);
         else if(s==='status')idxSt=idx;
         else if(s.includes('conclus'))idxDt=idx;
       });break;
@@ -596,7 +596,6 @@ function calcular(){
     const cliente=(c[idxCli]||'').toString().trim();
     const prob=(c[idxProb]||'').toString().trim();
     const tecRaw=(c[idxTec]||'').toString().trim();
-    const ajRaw=(c[idxAj]||'').toString().trim();
     const status=(c[idxSt]||'').toString().trim().toLowerCase();
     const dtC=c[idxDt]||'';
     if(!['feito','acompanhar'].some(s=>status.includes(s)))continue;
@@ -605,7 +604,12 @@ function calcular(){
     if(osVistas.has(chave))continue;
     osVistas.add(chave);
     const tec=primNome(tecRaw);if(!tec)continue;
-    const ajs=[...new Set([...ajudantes(tecRaw).filter(a=>!ehIgn(a)&&a!==tec),...(ajRaw?[primNome(ajRaw)].filter(a=>!ehIgn(a)&&a!==tec):[])])];
+    const ajsFromTec=ajudantes(tecRaw).filter(a=>!ehIgn(a)&&a!==tec);
+    const ajsFromCol=idxAjs.flatMap(idx=>{
+      const v=(c[idx]||'').toString().trim();
+      return v?v.split(/[,\/]/).map(p=>p.trim()).filter(p=>p.length>1&&p!==tec):[];
+    });
+    const ajs=[...new Set([...ajsFromTec,...ajsFromCol])];
     registros.push({noOs,cliente,prob,tec,ajs,dtC});
   }
   if(!registros.length){mostrarErro('Nenhuma OS com status "Feito" ou "Acompanhar" encontrada.');return;}
