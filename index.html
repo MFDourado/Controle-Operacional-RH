@@ -314,11 +314,13 @@ table.sa tfoot td:not(:first-child){text-align:right}
       Valores por OS
       <span style="font-weight:400;color:var(--text3);text-transform:none;letter-spacing:0;font-size:10px;margin-left:4px">— usados no cálculo</span>
     </p>
-    <table class="metrics-table">
-      <thead><tr><th>Tipo</th><th style="text-align:right">Valor</th><th></th></tr></thead>
-      <tbody id="met-tbody"></tbody>
-    </table>
-    <button class="add" onclick="addMetrica()" style="margin-top:4px">+ adicionar tipo</button>
+    <div style="display:grid;grid-template-columns:1fr 110px 48px;gap:8px;padding:0 10px 6px;margin-bottom:2px">
+      <span style="font-size:10px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:0.6px">Tipo</span>
+      <span style="font-size:10px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:0.6px;text-align:right;padding-right:4px">Valor</span>
+      <span></span>
+    </div>
+    <div class="met-grid" id="met-grid"></div>
+    <button class="add" onclick="addMetrica()" style="margin-top:6px">+ adicionar tipo</button>
   </div>
 
   <!-- UPLOAD -->
@@ -598,20 +600,20 @@ let _metricas = [
 
 function getMetrica(id){ const m=_metricas.find(x=>x.id===id); return m?m.valor:0; }
 function renderMetricas(){
-  const tbody=document.getElementById('met-tbody');
-  if(!tbody)return;
-  tbody.innerHTML=_metricas.map((m,i)=>`
-    <tr>
-      <td><input class="met-nome" value="${m.nome}" oninput="_metricas[${i}].nome=this.value" placeholder="Nome do tipo"/></td>
-      <td style="text-align:right">
-        <span style="color:var(--text3);font-size:11px;margin-right:2px">R$</span>
+  const cont=document.getElementById('met-grid');
+  if(!cont)return;
+  cont.innerHTML=_metricas.map((m,i)=>`
+    <div class="met-row">
+      <input class="met-nome" value="${m.nome}" oninput="_metricas[${i}].nome=this.value" placeholder="Nome do tipo"/>
+      <div class="met-val-wrap">
+        <span class="met-val-prefix">R$</span>
         <input class="met-val" type="number" min="0" step="0.01" value="${m.valor}"
           oninput="_metricas[${i}].valor=parseFloat(this.value)||0"/>
-      </td>
-      <td style="text-align:center">
-        ${m.fixo?`<span class="met-tag">base</span>`:`<button class="del" onclick="removerMetrica(${i})" title="Remover">×</button>`}
-      </td>
-    </tr>`).join('');
+      </div>
+      ${m.fixo
+        ? `<span class="met-tag">base</span>`
+        : `<button class="del" onclick="removerMetrica(${i})" title="Remover" style="justify-self:center">×</button>`}
+    </div>`).join('');
 }
 function removerMetrica(i){
   _metricas.splice(i,1);
