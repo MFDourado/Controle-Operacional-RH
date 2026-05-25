@@ -1431,6 +1431,8 @@ function lerEscala(file){
       st.textContent='✓ '+file.name+' — '+_escalaData.length+' colaborador(es)';
       st.className='upload-status ok';
       document.getElementById('sac-status').textContent=_escalaData.length+' colaborador(es)';
+      const cr=document.getElementById('sac-clear-row');
+      if(cr){cr.style.display='flex';document.getElementById('sac-file-nome').textContent='📅 '+file.name;}
       renderEscala();
     }catch(err){
       console.error(err);
@@ -1439,6 +1441,19 @@ function lerEscala(file){
     }
   };
   reader.readAsArrayBuffer(file);
+}
+
+function limparEscala(){
+  _escalaData=null;
+  document.getElementById('sac-file-input').value='';
+  const st=document.getElementById('sac-upload-status');
+  st.textContent='';st.className='upload-status';
+  const cr=document.getElementById('sac-clear-row');
+  if(cr)cr.style.display='none';
+  document.getElementById('sac-status').textContent='';
+  document.getElementById('sac-preview').style.display='none';
+  document.getElementById('sac-table').innerHTML='';
+  showToast('Escala removida');
 }
 
 function renderEscala(){
