@@ -1003,7 +1003,40 @@ function exportarPDF(){
   }
 
   // ── 3. OS ──────────────────────────────────────────────────
-  secHR();
+  
+  // ── ESCALA SAC ─────────────────────────────────────────────
+  if(typeof _escalaData!=='undefined'&&_escalaData&&_escalaData.length){
+    secHR();
+    secTitulo('Escala SAC');
+    _escalaData.forEach(function(colab){
+      newPageIfNeeded(20);
+      doc.setFillColor(45,45,45);
+      doc.rect(M,y,CW,7,'F');
+      doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(255,255,255);
+      doc.text(colab.nome,M+4,y+5);
+      y+=9;
+      if(!colab.rows||!colab.rows.length)return;
+      var nCols=colab.headers.length;
+      var colW=Math.floor(CW/Math.max(nCols,1));
+      var cols={};
+      colab.headers.forEach(function(_,i){cols[i]={cellWidth:colW};});
+      doc.autoTable({
+        startY:y,head:[colab.headers],
+        body:colab.rows.map(function(r){return r.map(function(c){return String(c!==null&&c!==undefined?c:'');});}),
+        theme:'plain',
+        styles:{font:'helvetica',fontStyle:'normal',fontSize:8,
+          cellPadding:{top:3,bottom:3,left:4,right:4},
+          textColor:[17,17,17],lineColor:[228,226,222],lineWidth:0.15,overflow:'ellipsize'},
+        headStyles:{fillColor:[240,240,238],textColor:[130,130,130],fontStyle:'normal',fontSize:7.5},
+        alternateRowStyles:{fillColor:[255,252,242]},
+        columnStyles:cols,
+        margin:{left:M,right:M},tableWidth:CW,rowPageBreak:'avoid',
+      });
+      y=doc.lastAutoTable.finalY+8;
+    });
+  }
+
+secHR();
   secTitulo('Bonificação por OS',_metricas.map(m=>'R$ '+m.valor.toFixed(2).replace('.',',')+'  '+m.nome).join('  ·  '));
   const colsOS=[{w:70,align:'left',header:'Técnico'},{w:36,align:'right',header:'OS Técnico'},{w:36,align:'right',header:'OS Ajudante'},{w:36,align:'right',header:'Valor'}];
   const rowsOS=nomes.map(n=>{const r=_resultados[n];return[n,String(r.osTec),String(r.osAj),fmtR(r.vOs)];});
