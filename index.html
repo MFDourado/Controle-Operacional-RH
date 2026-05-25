@@ -264,6 +264,16 @@ table.sa tfoot td:not(:first-child){text-align:right}
   .nav-tab.active{background:var(--black);color:#fff;font-weight:500}
   .nav-page{display:none}
   .nav-page.active{display:block}
+  /* ── SAC TABLE ── */
+  #sac-table th{background:var(--black);color:#fff;font-size:10.5px;font-weight:500;
+    padding:8px 12px;text-align:left;white-space:nowrap}
+  #sac-table td{padding:7px 12px;border-bottom:1px solid var(--border);font-size:12px;white-space:nowrap}
+  #sac-table tr:nth-child(even) td{background:var(--gold-light,#FFFBEE)}
+  #sac-table tr:nth-child(odd) td{background:var(--surface)}
+  #sac-table tr:hover td{background:var(--surface2)}
+  #sac-table .folga{color:var(--text3);font-style:italic}
+  #sac-table .trabalha{color:var(--black)}
+  #sac-table .feriado{color:#E67E22;font-weight:500}
 </style>
 </head>
 <body>
@@ -322,6 +332,7 @@ table.sa tfoot td:not(:first-child){text-align:right}
   <div class="nav-bar">
     <button class="nav-tab active" onclick="switchTab('calc',this)">Calculadora</button>
     <button class="nav-tab" onclick="switchTab('config',this)">Pontuação</button>
+    <button class="nav-tab" onclick="switchTab('sac',this)">Escala SAC</button>
   </div>
 
   <!-- ADMIN PANEL -->
@@ -495,6 +506,37 @@ table.sa tfoot td:not(:first-child){text-align:right}
     </div>
     <div id="cfg-list" style="display:flex;flex-direction:column;gap:8px"></div>
   </div><!-- /page-config -->
+
+  <!-- SAC PAGE -->
+  <div class="nav-page" id="page-sac">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+      <div>
+        <h2 style="font-size:17px;font-weight:500;color:var(--black);letter-spacing:-0.2px">Escala SAC</h2>
+        <p style="font-size:12px;color:var(--text2);margin-top:3px">Importe o arquivo .xlsx da escala mensal</p>
+      </div>
+      <div id="sac-status" style="font-size:12px;color:var(--text3)"></div>
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+      <p class="card-title">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        Arquivo da escala (.xlsx)
+      </p>
+      <div class="upload-zone" id="sac-drop-zone">
+        <input type="file" id="sac-file-input" accept=".xlsx,.xls" onchange="lerEscala(this.files[0])">
+        <div class="upload-icon">📅</div>
+        <div class="upload-label">Clique para selecionar o arquivo</div>
+        <div class="upload-sub">ou arraste o .xlsx da escala aqui</div>
+        <div id="sac-upload-status" class="upload-status"></div>
+      </div>
+    </div>
+
+    <div id="sac-preview" style="display:none">
+      <div style="overflow-x:auto;border-radius:var(--radius);border:1px solid var(--border)">
+        <table id="sac-table" style="width:100%;border-collapse:collapse;font-size:12px;min-width:600px"></table>
+      </div>
+    </div>
+  </div><!-- /page-sac -->
 
 
 <div class="modal-bg" id="modal-bg">
@@ -1262,6 +1304,71 @@ function cfgDeletar(i){
   showToast('Excluído');
 }
 
+
+// ── ESCALA SAC ───────────────────────────────────────────────
+let _escalaData = null;
+
+const sacZone = document.getElementById('sac-drop-zone');
+if(sacZone){
+  sacZone.addEventListener('dragover',e=>{e.preventDefault();sacZone.classList.add('drag');});
+  sacZone.addEventListener('dragleave',()=>sacZone.classList.remove('drag'));
+  sacZone.addEventListener('drop',e=>{e.preventDefault();sacZone.classList.remove('drag');const f=e.dataTransfer.files[0];if(f)lerEscala(f);});
+}
+
+function lerEscala(file){
+  if(!file)return;
+  const st=document.getElementById('sac-upload-status');
+  if(!file.name.match(/\.xlsx?$/i)){st.textContent='Formato inválido.';st.className='upload-status err';return;}
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const wb=XLSX.read(e.target.result,{type:'array',cellDates:true});
+      // Read all sheets
+      _escalaData=[];
+      wb.SheetNames.forEach(name=>{
+        const ws=wb.Sheets[name];
+        const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+        if(rows.length>1) _escalaData.push({nome:name,rows});
+      });
+      st.textContent='✓ '+file.name;
+      st.className='upload-status ok';
+      document.getElementById('sac-status').textContent=_escalaData.length+' colaborador(es) encontrado(s)';
+      renderEscala();
+    }catch(err){st.textContent='Erro: '+err.message;st.className='upload-status err';}
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function renderEscala(){
+  const preview=document.getElementById('sac-preview');
+  const table=document.getElementById('sac-table');
+  if(!_escalaData||!_escalaData.length){preview.style.display='none';return;}
+  preview.style.display='block';
+
+  let html='';
+  _escalaData.forEach(sheet=>{
+    // Section header for each collaborator/sheet
+    html+=`<tr><td colspan="99" style="background:var(--black);color:#fff;font-weight:500;font-size:12px;padding:8px 12px;letter-spacing:0.2px">${sheet.nome}</td></tr>`;
+    sheet.rows.forEach((row,ri)=>{
+      if(ri===0){
+        // Header row
+        html+='<tr>'+row.map(h=>`<th>${h||''}</th>`).join('')+'</tr>';
+      } else {
+        // Data rows
+        const tipo=(row[row.length-1]||'').toString().toLowerCase();
+        const cls=tipo.includes('folga')?'folga':tipo.includes('feriado')?'feriado':'trabalha';
+        html+='<tr>'+row.map(cell=>{
+          let v=cell;
+          if(cell instanceof Date) v=cell.toLocaleDateString('pt-BR');
+          return `<td class="${cls}">${v||''}</td>`;
+        }).join('')+'</tr>';
+      }
+    });
+    // Spacer
+    html+='<tr><td colspan="99" style="padding:4px;background:var(--bg)"></td></tr>';
+  });
+  table.innerHTML=html;
+}
 
 // COPIAR
 function copiarBonif(){
