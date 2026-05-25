@@ -492,7 +492,6 @@ function setScriptUrl(url) {
   try { localStorage.setItem('blintrack_script_url', url); } catch(e){}
   try { sessionStorage.setItem('blintrack_script_url', url); } catch(e){}
 }
-renderMetricas();
 document.getElementById('data-hoje').textContent=new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'});
 (function(){
   const hoje=new Date(),ini=new Date(hoje);ini.setDate(ini.getDate()-30);
@@ -621,10 +620,10 @@ function removerMetrica(i){
 function addMetrica(){
   _metricas.push({id:'custom_'+Date.now(),nome:'Novo tipo',valor:0,fixo:false});
   renderMetricas();
-  // focus last nome input
   const inputs=document.querySelectorAll('.met-nome');
   if(inputs.length)inputs[inputs.length-1].focus();
 }
+renderMetricas();
 
 function calcular(){
   document.getElementById('erro-msg').style.display='none';
@@ -1077,13 +1076,22 @@ function tentarLogin() {
     _sessao = { login, nome: login, perfil: 'gestor', token: login+':gestor' };
     ativarSessao(); return;
   }
-  fetch(url,{method:'POST',headers:{'Content-Type':'text/plain'},
+  fetch(url,{method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain'},
     body:JSON.stringify({action:'login',login,senha})})
-    .then(r=>r.json())
-    .then(d=>{
-      if(d.ok){_sessao={login,nome:d.nome,perfil:d.perfil,token:d.login+':'+d.perfil};ativarSessao();}
-      else{err.textContent=d.erro||'Credenciais inválidas.';}
-    }).catch(()=>{err.textContent='Erro de conexão. Verifique o AppScript.';});
+    .then(r=>r.text())
+    .then(t=>{
+      try{
+        const d=JSON.parse(t);
+        if(d.ok){_sessao={login,nome:d.nome,perfil:d.perfil,token:d.login+':'+d.perfil};ativarSessao();}
+        else{err.textContent=d.erro||'Credenciais inválidas.';}
+      }catch(e){err.textContent='Resposta inválida do servidor.';}
+    }).catch(e=>{
+      // AppScript inacessível — entra em modo local como gestor
+      console.warn('AppScript offline, modo local:', e);
+      _sessao={login,nome:login,perfil:'gestor',token:login+':gestor'};
+      ativarSessao();
+      showToast('⚠️ Modo local — AppScript indisponível');
+    });
 }
 
 function ativarSessao() {
