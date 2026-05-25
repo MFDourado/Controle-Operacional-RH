@@ -235,6 +235,35 @@ table.sa tfoot td:not(:first-child){text-align:right}
   .u-status.on{color:#1E7A40}
   .u-status.off{color:var(--text3)}
   .user-item .spacer-u{flex:1}
+  /* ── CONFIG PAGE ── */
+  .cfg-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;transition:border-color .15s}
+  .cfg-item:hover{border-color:var(--border2)}
+  .cfg-item-inner{display:flex;align-items:center;padding:13px 16px;cursor:pointer;gap:12px;user-select:none}
+  .cfg-item-num{width:32px;height:32px;border-radius:6px;background:var(--gold-dim);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:'DM Mono',monospace;font-size:11px;font-weight:600;color:#8A6800}
+  .cfg-item-body{flex:1;min-width:0}
+  .cfg-item-nome{font-size:13px;font-weight:500;color:var(--black);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .cfg-item-sub{font-size:11px;color:var(--text3);margin-top:1px}
+  .cfg-item-right{display:flex;align-items:center;gap:10px;flex-shrink:0}
+  .cfg-item-val{font-family:'DM Mono',monospace;font-size:15px;font-weight:600;color:var(--black)}
+  .cfg-tag-base{font-size:9px;font-weight:600;padding:2px 8px;border-radius:10px;background:var(--gold-dim);color:#8A6800;letter-spacing:0.3px;text-transform:uppercase}
+  .cfg-item-del{background:none;border:none;color:var(--border2);font-size:16px;cursor:pointer;padding:3px 5px;border-radius:4px;transition:color .15s;line-height:1}
+  .cfg-item-del:hover{color:var(--danger)}
+  .cfg-chevron{font-size:11px;color:var(--text3);transition:transform .2s}
+  .cfg-chevron.open{transform:rotate(180deg)}
+  .cfg-edit-panel{display:none;border-top:1px solid var(--border);padding:14px 16px;background:var(--surface2)}
+  .cfg-edit-panel.open{display:flex;gap:10px;align-items:flex-end}
+  .cfg-edit-panel .f{display:flex;flex-direction:column;gap:4px;flex:1}
+  .cfg-edit-panel label{font-size:10px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px}
+  .cfg-edit-panel input{background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:'DM Sans',sans-serif;font-size:12.5px;padding:7px 10px;border-radius:var(--radius-sm);outline:none;transition:border-color .15s;width:100%}
+  .cfg-edit-panel input:focus{border-color:var(--gold)}
+  .cfg-edit-save{background:var(--gold);color:var(--black);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;border:none;border-radius:var(--radius-sm);padding:8px 14px;cursor:pointer;white-space:nowrap}
+  .cfg-edit-save:hover{opacity:.88}
+  .nav-bar{display:flex;gap:4px;margin-bottom:24px}
+  .nav-tab{font-family:'DM Sans',sans-serif;font-size:12.5px;font-weight:500;color:var(--text2);background:none;border:none;cursor:pointer;padding:8px 18px;border-radius:6px;transition:all .15s;letter-spacing:0.1px}
+  .nav-tab:hover{background:var(--surface2);color:var(--black)}
+  .nav-tab.active{background:var(--black);color:#fff;font-weight:500}
+  .nav-page{display:none}
+  .nav-page.active{display:block}
 </style>
 </head>
 <body>
