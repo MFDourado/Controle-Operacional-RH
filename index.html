@@ -1164,28 +1164,28 @@ function renderCfgList(){
   list.innerHTML=_metricas.map((m,i)=>`
     <div class="cfg-item" id="cfg-card-${i}">
       <div class="cfg-item-inner" onclick="cfgToggle(${i})">
-        <div class="cfg-item-dot"></div>
+        <div class="cfg-item-num">R$</div>
         <div class="cfg-item-body">
           <div class="cfg-item-nome">${m.nome}</div>
-          <div class="cfg-item-sub">Clique para editar</div>
+          <div class="cfg-item-sub">por OS processada</div>
         </div>
         <div class="cfg-item-right">
-          <div>
-            <div class="cfg-item-val">R$ ${m.valor.toFixed(2).replace('.',',')}</div>
-            <div class="cfg-item-val-label">por OS</div>
-          </div>
+          <div class="cfg-item-val">R$ ${m.valor.toFixed(2).replace('.',',')}</div>
           ${m.fixo?`<span class="cfg-tag-base">base</span>`:''}
           ${!m.fixo?`<button class="cfg-item-del" onclick="event.stopPropagation();cfgDeletar(${i})" title="Excluir">×</button>`:''}
+          <span class="cfg-chevron" id="cfg-chev-${i}">▼</span>
         </div>
       </div>
       <div class="cfg-edit-panel" id="cfg-panel-${i}">
         <div class="f">
           <label>Nome</label>
-          <input type="text" id="cfg-nome-${i}" value="${m.nome}" placeholder="Nome do tipo"/>
+          <input type="text" id="cfg-nome-${i}" value="${m.nome}" placeholder="Nome do tipo"
+            onkeydown="if(event.key==='Enter')cfgSalvarInline(${i})"/>
         </div>
-        <div class="f" style="max-width:140px">
+        <div class="f" style="max-width:130px">
           <label>Valor (R$)</label>
-          <input type="number" id="cfg-val-${i}" value="${m.valor}" min="0" step="0.01"/>
+          <input type="number" id="cfg-val-${i}" value="${m.valor}" min="0" step="0.01"
+            onkeydown="if(event.key==='Enter')cfgSalvarInline(${i})"/>
         </div>
         <button class="cfg-edit-save" onclick="cfgSalvarInline(${i})">Salvar</button>
       </div>
@@ -1194,10 +1194,15 @@ function renderCfgList(){
 
 function cfgToggle(i){
   const panel=document.getElementById('cfg-panel-'+i);
+  const chev=document.getElementById('cfg-chev-'+i);
   const isOpen=panel.classList.contains('open');
-  // close all
   document.querySelectorAll('.cfg-edit-panel').forEach(p=>p.classList.remove('open'));
-  if(!isOpen){panel.classList.add('open');setTimeout(()=>document.getElementById('cfg-nome-'+i).focus(),50);}
+  document.querySelectorAll('.cfg-chevron').forEach(c=>c.classList.remove('open'));
+  if(!isOpen){
+    panel.classList.add('open');
+    chev.classList.add('open');
+    setTimeout(()=>document.getElementById('cfg-nome-'+i).focus(),50);
+  }
 }
 
 function cfgSalvarInline(i){
