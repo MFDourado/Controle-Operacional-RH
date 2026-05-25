@@ -307,22 +307,7 @@ table.sa tfoot td:not(:first-child){text-align:right}
     <div class="user-list" id="user-list"><div style="font-size:12px;color:var(--text3)">Carregando...</div></div>
   </div>
 
-  <!-- MÉTRICAS OS -->
-  <div class="card">
-    <p class="card-title">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-      Valores por OS
-      <span style="font-weight:400;color:var(--text3);text-transform:none;letter-spacing:0;font-size:10px;margin-left:4px">— usados no cálculo</span>
-    </p>
-    <div style="display:grid;grid-template-columns:1fr 110px 48px;gap:8px;padding:0 10px 6px;margin-bottom:2px">
-      <span style="font-size:10px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:0.6px">Tipo</span>
-      <span style="font-size:10px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:0.6px;text-align:right;padding-right:4px">Valor</span>
-      <span></span>
-    </div>
-    <div class="met-grid" id="met-grid"></div>
-    <button class="add" onclick="addMetrica()" style="margin-top:6px">+ adicionar tipo</button>
-  </div>
-
+  <div class="nav-page active" id="page-calc">
   <!-- UPLOAD -->
   <div class="card">
     <p class="card-title">
@@ -463,6 +448,38 @@ table.sa tfoot td:not(:first-child){text-align:right}
   </div>
 </div>
 
+  </div><!-- /page-calc -->
+
+  <!-- CONFIG PAGE -->
+  <div class="nav-page" id="page-config">
+    <div class="cfg-hero">
+      <div>
+        <h2>Valores por OS</h2>
+        <p>Defina os valores usados automaticamente no cálculo e nos relatórios</p>
+      </div>
+      <button class="cfg-add-btn" onclick="cfgAddMetrica()">+ Novo tipo</button>
+    </div>
+    <div class="cfg-list" id="cfg-list"></div>
+  </div><!-- /page-config -->
+
+<!-- CFG EDIT MODAL -->
+<div class="cfg-modal-bg" id="cfg-modal-bg">
+  <div class="cfg-modal">
+    <div class="cfg-modal-hdr">
+      <h3 id="cfg-modal-title">Editar tipo</h3>
+      <button class="del" onclick="cfgFecharModal()">×</button>
+    </div>
+    <div class="cfg-modal-body">
+      <div class="cfg-field"><label>Nome do tipo</label><input type="text" id="cfg-inp-nome" placeholder="Ex: OS Técnico (semana)"/></div>
+      <div class="cfg-field"><label>Valor (R$)</label><input type="number" id="cfg-inp-val" min="0" step="0.01" placeholder="0,00"/></div>
+    </div>
+    <div class="cfg-modal-foot">
+      <button class="cfg-cancel" onclick="cfgFecharModal()">Cancelar</button>
+      <button class="cfg-save" onclick="cfgSalvar()">Salvar</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-bg" id="modal-bg">
   <div class="modal">
     <div class="modal-hdr"><h3>⚙️ Configurar AppScript</h3><button class="del" onclick="fecharModal()">×</button></div>
@@ -599,33 +616,7 @@ let _metricas = [
 ];
 
 function getMetrica(id){ const m=_metricas.find(x=>x.id===id); return m?m.valor:0; }
-function renderMetricas(){
-  const cont=document.getElementById('met-grid');
-  if(!cont)return;
-  cont.innerHTML=_metricas.map((m,i)=>`
-    <div class="met-row">
-      <input class="met-nome" value="${m.nome}" oninput="_metricas[${i}].nome=this.value" placeholder="Nome do tipo"/>
-      <div class="met-val-wrap">
-        <span class="met-val-prefix">R$</span>
-        <input class="met-val" type="number" min="0" step="0.01" value="${m.valor}"
-          oninput="_metricas[${i}].valor=parseFloat(this.value)||0"/>
-      </div>
-      ${m.fixo
-        ? `<span class="met-tag">base</span>`
-        : `<button class="del" onclick="removerMetrica(${i})" title="Remover" style="justify-self:center">×</button>`}
-    </div>`).join('');
-}
-function removerMetrica(i){
-  _metricas.splice(i,1);
-  renderMetricas();
-}
-function addMetrica(){
-  _metricas.push({id:'custom_'+Date.now(),nome:'Novo tipo',valor:0,fixo:false});
-  renderMetricas();
-  const inputs=document.querySelectorAll('.met-nome');
-  if(inputs.length)inputs[inputs.length-1].focus();
-}
-renderMetricas();
+// metrics rendered in config tab
 
 function calcular(){
   document.getElementById('erro-msg').style.display='none';
@@ -1173,6 +1164,82 @@ function removerUsuario(login) {
     .then(d=>{if(d.ok){showToast('✓ Removido');carregarUsuarios();}else showToast('Erro: '+d.erro);})
     .catch(()=>showToast('Erro de conexão'));
 }
+
+
+// ── CONFIG PAGE ──────────────────────────────────────────────
+function switchTab(tab){
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.nav-page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+tab).classList.add('active');
+  event.currentTarget.classList.add('active');
+  if(tab==='config') renderCfgList();
+}
+
+function renderCfgList(){
+  const list=document.getElementById('cfg-list');
+  if(!list)return;
+  const icons=['💵','👥','📅','🤝','📡','⭐','🔧','💎','🎯','✨'];
+  list.innerHTML=_metricas.map((m,i)=>`
+    <div class="cfg-item">
+      <div class="cfg-item-icon">${icons[i%icons.length]}</div>
+      <div class="cfg-item-body">
+        <div class="cfg-item-nome">${m.nome}</div>
+        <div class="cfg-item-id">${m.id}</div>
+      </div>
+      <div class="cfg-item-val">
+        R$ ${m.valor.toFixed(2).replace('.',',')}
+        <span>por OS</span>
+      </div>
+      <div class="cfg-item-actions">
+        ${m.fixo?`<span class="cfg-tag-base">base</span>`:''}
+        <button class="cfg-btn-edit" onclick="cfgEditar(${i})">Editar</button>
+        ${!m.fixo?`<button class="cfg-btn-del" onclick="cfgDeletar(${i})">Excluir</button>`:''}
+      </div>
+    </div>`).join('');
+}
+
+let _cfgIdx = null;
+function cfgEditar(i){
+  _cfgIdx=i;
+  const m=_metricas[i];
+  document.getElementById('cfg-modal-title').textContent='Editar: '+m.nome;
+  document.getElementById('cfg-inp-nome').value=m.nome;
+  document.getElementById('cfg-inp-val').value=m.valor;
+  document.getElementById('cfg-modal-bg').classList.add('open');
+  setTimeout(()=>document.getElementById('cfg-inp-nome').focus(),100);
+}
+function cfgAddMetrica(){
+  _cfgIdx=null;
+  document.getElementById('cfg-modal-title').textContent='Novo tipo';
+  document.getElementById('cfg-inp-nome').value='';
+  document.getElementById('cfg-inp-val').value='';
+  document.getElementById('cfg-modal-bg').classList.add('open');
+  setTimeout(()=>document.getElementById('cfg-inp-nome').focus(),100);
+}
+function cfgFecharModal(){
+  document.getElementById('cfg-modal-bg').classList.remove('open');
+}
+function cfgSalvar(){
+  const nome=document.getElementById('cfg-inp-nome').value.trim();
+  const val=parseFloat(document.getElementById('cfg-inp-val').value)||0;
+  if(!nome){showToast('Nome obrigatório');return;}
+  if(_cfgIdx!==null){
+    _metricas[_cfgIdx].nome=nome;
+    _metricas[_cfgIdx].valor=val;
+  } else {
+    _metricas.push({id:'custom_'+Date.now(),nome,valor:val,fixo:false});
+  }
+  cfgFecharModal();
+  renderCfgList();
+  showToast('✓ Salvo');
+}
+function cfgDeletar(i){
+  if(!confirm('Excluir "'+_metricas[i].nome+'"?'))return;
+  _metricas.splice(i,1);
+  renderCfgList();
+  showToast('Excluído');
+}
+document.getElementById('cfg-modal-bg').addEventListener('click',e=>{if(e.target===e.currentTarget)cfgFecharModal();});
 
 
 // COPIAR
