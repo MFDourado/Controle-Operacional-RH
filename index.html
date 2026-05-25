@@ -1315,6 +1315,26 @@ if(sacZone){
   sacZone.addEventListener('drop',e=>{e.preventDefault();sacZone.classList.remove('drag');const f=e.dataTransfer.files[0];if(f)lerEscala(f);});
 }
 
+// Converte número serial do Excel para HH:MM
+function excelTimeToStr(v){
+  if(v===null||v===undefined||v==='x'||v==='')return v===0?'00:00':(v||'');
+  if(typeof v==='string') return v;
+  if(typeof v==='number' && v>0 && v<1){
+    const totalMin=Math.round(v*24*60);
+    const h=Math.floor(totalMin/60), m=totalMin%60;
+    return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');
+  }
+  // Se for objeto Date (XLSX.js com cellDates:true)
+  if(v instanceof Date){
+    // Data real
+    if(v.getFullYear()>1900) return v.toLocaleDateString('pt-BR');
+    // Horário (epoch 1899)
+    const h=v.getUTCHours(), m=v.getUTCMinutes();
+    return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');
+  }
+  return String(v);
+}
+
 function lerEscala(file){
   if(!file)return;
   const st=document.getElementById('sac-upload-status');
@@ -1322,19 +1342,68 @@ function lerEscala(file){
   const reader=new FileReader();
   reader.onload=e=>{
     try{
-      const wb=XLSX.read(e.target.result,{type:'array',cellDates:true});
-      // Read all sheets
+      const wb=XLSX.read(e.target.result,{type:'array',cellDates:true,dateNF:'dd/mm/yyyy'});
       _escalaData=[];
-      wb.SheetNames.forEach(name=>{
-        const ws=wb.Sheets[name];
-        const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
-        if(rows.length>1) _escalaData.push({nome:name,rows});
+
+      wb.SheetNames.forEach(sheetName=>{
+        const ws=wb.Sheets[sheetName];
+        const raw=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:false});
+        const rawNum=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:true});
+
+        // Detecta colaboradores — linha com nomes (células não-nulas separadas)
+        // Estrutura: linha 0 = título, linha 1 = nomes, linha 2 = cabeçalhos, linhas 3+ = dados
+        let nameRow=-1, headerRow=-1, dataStart=-1;
+        for(let i=0;i<raw.length;i++){
+          const filled=raw[i].filter(c=>c&&c.toString().trim());
+          if(filled.length>=3 && nameRow===-1){nameRow=i;continue;}
+          if(nameRow>=0 && headerRow===-1 && filled.length>=5){headerRow=i;dataStart=i+1;break;}
+        }
+        if(nameRow<0||headerRow<0) return;
+
+        // Find collaborator column groups
+        const names=rawNum[nameRow];
+        const headers=raw[headerRow];
+        const groups=[];
+        names.forEach((n,ci)=>{
+          if(n&&n.toString().trim()) groups.push({nome:n.toString().trim(),startCol:ci});
+        });
+        // Each group spans until next group or end
+        groups.forEach((g,gi)=>{
+          const endCol=gi+1<groups.length?groups[gi+1].startCol:headers.length;
+          const cols=[];
+          for(let c=g.startCol;c<endCol;c++){
+            if(headers[c]&&headers[c].toString().trim()) cols.push({idx:c,label:headers[c].toString().trim()});
+          }
+          const rows=[];
+          for(let ri=dataStart;ri<rawNum.length;ri++){
+            const rowRaw=rawNum[ri], rowFmt=raw[ri];
+            if(!rowRaw[g.startCol]&&rowRaw.every(c=>!c)) continue;
+            const rowData=cols.map(col=>{
+              const rv=rowRaw[col.idx];
+              const fv=rowFmt[col.idx];
+              // Horário: número entre 0 e 1
+              if(typeof rv==='number'&&rv>0&&rv<1) return excelTimeToStr(rv);
+              // Data: número > 1
+              if(typeof rv==='number'&&rv>=1&&col.label.toLowerCase().includes('data')){
+                return fv||excelTimeToStr(rv);
+              }
+              return fv!==undefined&&fv!==''?fv:(rv!==undefined?rv:'');
+            });
+            rows.push(rowData);
+          }
+          if(rows.length) _escalaData.push({nome:g.nome,headers:cols.map(c=>c.label),rows});
+        });
       });
-      st.textContent='✓ '+file.name;
+
+      st.textContent='✓ '+file.name+' — '+_escalaData.length+' colaborador(es)';
       st.className='upload-status ok';
-      document.getElementById('sac-status').textContent=_escalaData.length+' colaborador(es) encontrado(s)';
+      document.getElementById('sac-status').textContent=_escalaData.length+' colaborador(es)';
       renderEscala();
-    }catch(err){st.textContent='Erro: '+err.message;st.className='upload-status err';}
+    }catch(err){
+      console.error(err);
+      st.textContent='Erro: '+err.message;
+      st.className='upload-status err';
+    }
   };
   reader.readAsArrayBuffer(file);
 }
@@ -1345,29 +1414,18 @@ function renderEscala(){
   if(!_escalaData||!_escalaData.length){preview.style.display='none';return;}
   preview.style.display='block';
 
-  let html='';
-  _escalaData.forEach(sheet=>{
-    // Section header for each collaborator/sheet
-    html+=`<tr><td colspan="99" style="background:var(--black);color:#fff;font-weight:500;font-size:12px;padding:8px 12px;letter-spacing:0.2px">${sheet.nome}</td></tr>`;
-    sheet.rows.forEach((row,ri)=>{
-      if(ri===0){
-        // Header row
-        html+='<tr>'+row.map(h=>`<th>${h||''}</th>`).join('')+'</tr>';
-      } else {
-        // Data rows
-        const tipo=(row[row.length-1]||'').toString().toLowerCase();
-        const cls=tipo.includes('folga')?'folga':tipo.includes('feriado')?'feriado':'trabalha';
-        html+='<tr>'+row.map(cell=>{
-          let v=cell;
-          if(cell instanceof Date) v=cell.toLocaleDateString('pt-BR');
-          return `<td class="${cls}">${v||''}</td>`;
-        }).join('')+'</tr>';
-      }
+  let h='';
+  _escalaData.forEach(colab=>{
+    h+=`<tr><td colspan="99" style="background:var(--black);color:#fff;font-weight:500;font-size:12px;padding:8px 12px">${colab.nome}</td></tr>`;
+    h+='<tr>'+colab.headers.map(hd=>`<th>${hd}</th>`).join('')+'</tr>';
+    colab.rows.forEach(row=>{
+      const tipo=(row[row.length-1]||'').toString().toLowerCase();
+      const cls=tipo.includes('folga')?'folga':tipo.includes('feriado')?'feriado':'trabalha';
+      h+='<tr class="'+cls+'">'+row.map(cell=>`<td>${cell!==null&&cell!==undefined?cell:''}</td>`).join('')+'</tr>';
     });
-    // Spacer
-    html+='<tr><td colspan="99" style="padding:4px;background:var(--bg)"></td></tr>';
+    h+='<tr><td colspan="99" style="padding:5px;background:var(--bg)"></td></tr>';
   });
-  table.innerHTML=html;
+  table.innerHTML=h;
 }
 
 // COPIAR
