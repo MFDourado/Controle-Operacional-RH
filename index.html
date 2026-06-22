@@ -733,7 +733,7 @@ function calcular(){
   const viagens={},viagensDetalhe={};
   document.querySelectorAll('#viagens-container .viagem-row').forEach(row=>{
     const ins=row.querySelectorAll('input');
-    const n=ins[0].value.trim().split(' ')[0],dias=parseInt(ins[1].value)||0;
+    const n=primNome(ins[0].value),dias=parseInt(ins[1].value)||0;
     const destino=ins[2].value.trim(),servico=ins[3].value.trim();
     if(n&&dias>0){viagens[n]=(viagens[n]||0)+dias;if(!viagensDetalhe[n])viagensDetalhe[n]=[];viagensDetalhe[n].push({dias,destino,servico});}
   });
@@ -742,7 +742,7 @@ function calcular(){
   const montagens={};
   document.querySelectorAll('#montagens-container .mont-row').forEach(row=>{
     const ins=row.querySelectorAll('input'),sel=row.querySelector('select');
-    const n=ins[0].value.trim().split(' ')[0];
+    const n=primNome(ins[0].value);
     const vU=parseFloat(ins[1].value)||0,qtd=parseInt(ins[2].value)||1;
     const desc=sel?sel.options[sel.selectedIndex].text.split('–')[0].trim():'Item';
     if(n&&vU>0){if(!montagens[n])montagens[n]={v:0,desc:[]};montagens[n].v+=vU*qtd;montagens[n].desc.push(desc+(qtd>1?' x'+qtd:'')+' – '+fmtR(vU*qtd));}
@@ -752,7 +752,7 @@ function calcular(){
   const bonus={};
   document.querySelectorAll('#bonus-container .bonus-row').forEach(row=>{
     const ins=row.querySelectorAll('input');
-    const n=ins[0].value.trim().split(' ')[0],motivo=ins[1].value.trim(),val=parseFloat(ins[2].value)||0;
+    const n=primNome(ins[0].value),motivo=ins[1].value.trim(),val=parseFloat(ins[2].value)||0;
     if(n&&val>0){if(!bonus[n])bonus[n]={v:0,desc:[]};bonus[n].v+=val;bonus[n].desc.push((motivo||'Performance')+' – '+fmtR(val));}
   });
 
