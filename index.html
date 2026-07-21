@@ -594,7 +594,10 @@ function lerArquivo(file){
   reader.onload=e=>{
     try{
       const wb=XLSX.read(e.target.result,{type:'array',cellDates:true});
-      const ws=wb.Sheets[wb.SheetNames[0]];
+      const nomeAba=wb.SheetNames.find(n=>n.toLowerCase().trim()==='ata do dia')
+        ||wb.SheetNames.find(n=>n.toLowerCase().includes('ata'))
+        ||wb.SheetNames[0];
+      const ws=wb.Sheets[nomeAba];
       _dadosAta=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
       st.textContent='✓ '+file.name+' — '+(_dadosAta.length-1)+' linhas';
       st.className='upload-status ok';
@@ -705,7 +708,7 @@ function calcular(){
     const tecRaw=(c[idxTec]||'').toString().trim();
     const status=(c[idxSt]||'').toString().trim().toLowerCase();
     const dtC=c[idxDt]||'';
-    if(!['feito','acompanhar'].some(s=>status.includes(s)))continue;
+    if(!['feito','acompanhar','conclu'].some(s=>status.includes(s)))continue;
     if(!noOs)continue;
     const chave=noOs+'|'+tecRaw;
     if(osVistas.has(chave))continue;
@@ -719,7 +722,7 @@ function calcular(){
     const ajs=[...new Set([...ajsFromTec,...ajsFromCol])];
     registros.push({noOs,cliente,prob,tec,ajs,dtC});
   }
-  if(!registros.length){mostrarErro('Nenhuma OS com status "Feito" ou "Acompanhar" encontrada.');return;}
+  if(!registros.length){mostrarErro('Nenhuma OS com status "Feito", "Concluído" ou "Acompanhar" encontrada.');return;}
 
   const dados={};
   function get(n){if(!dados[n])dados[n]={osTec:0,osAj:0,vOs:0};return dados[n];}
