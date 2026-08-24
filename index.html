@@ -135,6 +135,14 @@ table.rh tbody td:not(:first-child){text-align:right;color:var(--text2)}
 table.rh tbody td:last-child{color:var(--black);font-weight:500}
 table.rh tfoot td{background:var(--gold);color:var(--black);font-weight:600;padding:8px 12px;font-size:12px}
 table.rh tfoot td:not(:first-child){text-align:right}
+table.rh td.editcell{padding:3px 6px}
+.rh-in{width:100%;background:transparent;border:1px solid transparent;border-radius:4px;padding:3px 4px;font-family:'DM Sans',sans-serif;font-size:12.5px;color:inherit;text-align:right;transition:all .15s}
+.rh-in.nome-in{text-align:left;font-weight:500;color:var(--black)}
+.rh-in.txt-in{text-align:left;font-size:11.5px}
+.rh-in:hover{border-color:var(--border2);background:var(--surface2)}
+.rh-in:focus{border-color:var(--gold);background:var(--surface2);box-shadow:0 0 0 2px var(--gold-dim);outline:none}
+.rh-del{background:transparent;border:none;cursor:pointer;color:var(--border2);font-size:15px;line-height:1;padding:2px 4px;transition:color .15s}
+.rh-del:hover{color:var(--danger)}
 table.sa{width:100%;border-collapse:collapse;font-size:12px}
 table.sa thead tr{background:var(--surface2);border-bottom:1px solid var(--border2)}
 table.sa thead th{color:var(--text2);font-weight:600;padding:7px 11px;text-align:left;font-size:10px;letter-spacing:0.5px;text-transform:uppercase}
@@ -460,11 +468,12 @@ table.sa tfoot td:not(:first-child){text-align:right}
       </p>
       <div style="overflow-x:auto">
         <table class="rh">
-          <thead><tr><th>Técnico</th><th>OS técnico</th><th>OS ajudante</th><th>Viagens</th><th>Montagens</th><th>Bônus</th><th>Valor total (R$)</th></tr></thead>
+          <thead><tr><th>Técnico</th><th>OS técnico</th><th>OS ajudante</th><th>Viagens</th><th>Montagens</th><th>Bônus</th><th>Valor total (R$)</th><th></th></tr></thead>
           <tbody id="tabela-body"></tbody>
           <tfoot id="tabela-foot"></tfoot>
         </table>
       </div>
+      <button class="add" onclick="addLinhaTabela()" style="margin-top:8px">+ incluir colaborador</button>
       <button class="copy-btn" onclick="copiarBonif()">Copiar resumo de bonificação</button>
       <button class="copy-btn export" onclick="exportarPDF()">⬇ Exportar PDF</button>
       <button class="copy-btn" onclick="exportarWord()" style="margin-top:6px;background:var(--surface2);color:var(--text);border:1px solid var(--border2);font-weight:500">⬇ Exportar Word</button>
@@ -580,6 +589,7 @@ document.getElementById('data-hoje').textContent=new Date().toLocaleDateString('
 
 const VT=4,VA=2,VF=20,VV=50,HORAS_SA=10;
 let _dadosAta=null,_resultados={},_registros=[],_filtro=new Set(),_saResultados=[];
+let _tabOverrides={},_tabRemovidos=new Set(),_tabExtras=[];
 
 // UPLOAD
 const zone=document.getElementById('upload-zone');
@@ -683,6 +693,7 @@ function getMetrica(id){ const m=_metricas.find(x=>x.id===id); return m?m.valor:
 function calcular(){
   document.getElementById('erro-msg').style.display='none';
   if(!_dadosAta){mostrarErro('Selecione o arquivo .xlsx da ata antes de calcular.');return;}
+  _tabOverrides={};_tabRemovidos=new Set();_tabExtras=[];
   const rows=_dadosAta,registros=[],osVistas=new Set();
   let idxOs=0,idxCli=1,idxProb=3,idxTec=4,idxAjs=[],idxSt=6,idxDt=10;
   for(let i=0;i<rows.length;i++){
@@ -800,32 +811,90 @@ function toggleTodos(cT){
   renderTabela();
 }
 
+function addLinhaTabela(){
+  _tabExtras.push({id:'extra_'+Date.now()+Math.floor(Math.random()*1000),nome:'',osTec:0,osAj:0,viagens:'—',montagens:'—',bonus:'—',valor:0});
+  renderTabela();
+}
+function removerLinhaTabela(nome){
+  _tabRemovidos.add(nome);
+  renderTabela();
+}
+function removerExtra(id){
+  _tabExtras=_tabExtras.filter(e=>e.id!==id);
+  renderTabela();
+}
+function editarOverride(nome,campo,valor){
+  if(!_tabOverrides[nome])_tabOverrides[nome]={};
+  _tabOverrides[nome][campo]=campo==='valor'?(parseFloat(valor)||0):valor;
+  renderTabela();
+}
+function editarExtra(id,campo,valor){
+  const e=_tabExtras.find(x=>x.id===id);if(!e)return;
+  e[campo]=campo==='valor'||campo==='osTec'||campo==='osAj'?(parseFloat(valor)||0):valor;
+  renderTabela();
+}
 function renderTabela(){
   const tbody=document.getElementById('tabela-body'),tfoot=document.getElementById('tabela-foot');
   tbody.innerHTML='';tfoot.innerHTML='';
   let totalG=0,totalOs=0;const resumo=[];
-  const nomes=Object.keys(_resultados).filter(n=>_filtro.has(n));
+  const nomes=Object.keys(_resultados).filter(n=>_filtro.has(n)&&!_tabRemovidos.has(n));
   nomes.forEach(nome=>{
-    const r=_resultados[nome];totalG+=r.total;totalOs+=r.osTec;
+    const r=_resultados[nome];
+    const ov=_tabOverrides[nome]||{};
+    const osTec=ov.osTec!==undefined?ov.osTec:r.osTec;
+    const osAj=ov.osAj!==undefined?ov.osAj:r.osAj;
+    const viaDescBase=r.vDetalhes&&r.vDetalhes.length?r.vDetalhes.map(v=>{let s=v.dias+' dia(s)';if(v.destino)s+=' — '+v.destino;if(v.servico)s+=' ('+v.servico+')';return s;}).join('; '):'—';
+    const montDescBase=r.mont.desc.length?r.mont.desc.join('; '):'—';
+    const bonDescBase=r.bon.desc.length?r.bon.desc.join('; '):'—';
+    const viaDesc=ov.viagens!==undefined?ov.viagens:viaDescBase;
+    const montDesc=ov.montagens!==undefined?ov.montagens:montDescBase;
+    const bonDesc=ov.bonus!==undefined?ov.bonus:bonDescBase;
+    const valor=ov.valor!==undefined?ov.valor:r.total;
+    totalG+=valor;totalOs+=Number(osTec)||0;
     const tr=document.createElement('tr');
-    const viaDesc=r.vDetalhes&&r.vDetalhes.length?r.vDetalhes.map(v=>{let s=v.dias+' dia(s)';if(v.destino)s+=' — '+v.destino;if(v.servico)s+=' ('+v.servico+')';return s;}).join('<br>'):'—';
-    const montDesc=r.mont.desc.length?r.mont.desc.join('<br>'):'—';
-    const bonDesc=r.bon.desc.length?r.bon.desc.join('<br>'):'—';
-    tr.innerHTML=`<td><strong>${nome}</strong></td><td>${r.osTec}</td><td>${r.osAj}</td><td style="font-size:11.5px">${viaDesc}</td><td style="font-size:11.5px">${montDesc}</td><td style="font-size:11.5px">${bonDesc}</td><td>${fmtR(r.total)}</td>`;
+    const nomeSafe=nome.replace(/'/g,"\\'");
+    tr.innerHTML=`<td class="editcell"><input class="rh-in nome-in" value="${nome}" disabled title="Para renomear, exclua e inclua novo colaborador"></td>
+      <td class="editcell"><input class="rh-in" type="number" value="${osTec}" onchange="editarOverride('${nomeSafe}','osTec',this.value)"></td>
+      <td class="editcell"><input class="rh-in" type="number" value="${osAj}" onchange="editarOverride('${nomeSafe}','osAj',this.value)"></td>
+      <td class="editcell"><input class="rh-in txt-in" value="${viaDesc}" onchange="editarOverride('${nomeSafe}','viagens',this.value)"></td>
+      <td class="editcell"><input class="rh-in txt-in" value="${montDesc}" onchange="editarOverride('${nomeSafe}','montagens',this.value)"></td>
+      <td class="editcell"><input class="rh-in txt-in" value="${bonDesc}" onchange="editarOverride('${nomeSafe}','bonus',this.value)"></td>
+      <td class="editcell"><input class="rh-in" type="number" step="0.01" value="${valor}" onchange="editarOverride('${nomeSafe}','valor',this.value)"></td>
+      <td class="editcell" style="text-align:center"><button class="rh-del" onclick="removerLinhaTabela('${nomeSafe}')" title="Excluir colaborador">×</button></td>`;
     tbody.appendChild(tr);
     const obs=[];
-    if(r.dVia>0){const vStr=r.vDetalhes&&r.vDetalhes.length?r.vDetalhes.map(v=>{let s=v.dias+' dia(s)';if(v.destino)s+=' em '+v.destino;return s;}).join(', '):r.dVia+' dia(s)';obs.push('Viagens: '+vStr);}
-    if(r.mont.desc.length)obs.push('Mont: '+r.mont.desc.join(', '));
-    if(r.bon.desc.length)obs.push('Bônus: '+r.bon.desc.join(', '));
-    resumo.push(`${nome}: ${r.osTec} OS téc / ${r.osAj} OS aj${obs.length?' / '+obs.join(' / '):''} = ${fmtR(r.total)}`);
+    if(viaDesc!=='—')obs.push('Viagens: '+viaDesc);
+    if(montDesc!=='—')obs.push('Mont: '+montDesc);
+    if(bonDesc!=='—')obs.push('Bônus: '+bonDesc);
+    resumo.push(`${nome}: ${osTec} OS téc / ${osAj} OS aj${obs.length?' / '+obs.join(' / '):''} = ${fmtR(valor)}`);
+  });
+  _tabExtras.forEach(e=>{
+    totalG+=Number(e.valor)||0;totalOs+=Number(e.osTec)||0;
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td class="editcell"><input class="rh-in nome-in" placeholder="Nome do colaborador" value="${e.nome}" onchange="editarExtra('${e.id}','nome',this.value)"></td>
+      <td class="editcell"><input class="rh-in" type="number" value="${e.osTec}" onchange="editarExtra('${e.id}','osTec',this.value)"></td>
+      <td class="editcell"><input class="rh-in" type="number" value="${e.osAj}" onchange="editarExtra('${e.id}','osAj',this.value)"></td>
+      <td class="editcell"><input class="rh-in txt-in" value="${e.viagens}" onchange="editarExtra('${e.id}','viagens',this.value)"></td>
+      <td class="editcell"><input class="rh-in txt-in" value="${e.montagens}" onchange="editarExtra('${e.id}','montagens',this.value)"></td>
+      <td class="editcell"><input class="rh-in txt-in" value="${e.bonus}" onchange="editarExtra('${e.id}','bonus',this.value)"></td>
+      <td class="editcell"><input class="rh-in" type="number" step="0.01" value="${e.valor}" onchange="editarExtra('${e.id}','valor',this.value)"></td>
+      <td class="editcell" style="text-align:center"><button class="rh-del" onclick="removerExtra('${e.id}')" title="Excluir linha">×</button></td>`;
+    tbody.appendChild(tr);
+    if(e.nome){
+      const obs=[];
+      if(e.viagens&&e.viagens!=='—')obs.push('Viagens: '+e.viagens);
+      if(e.montagens&&e.montagens!=='—')obs.push('Mont: '+e.montagens);
+      if(e.bonus&&e.bonus!=='—')obs.push('Bônus: '+e.bonus);
+      resumo.push(`${e.nome}: ${e.osTec} OS téc / ${e.osAj} OS aj${obs.length?' / '+obs.join(' / '):''} = ${fmtR(e.valor)}`);
+    }
   });
   const tf=document.createElement('tr');
-  tf.innerHTML=`<td>TOTAL</td><td>${totalOs}</td><td colspan="4"></td><td>${fmtR(totalG)}</td>`;
+  tf.innerHTML=`<td>TOTAL</td><td>${totalOs}</td><td colspan="4"></td><td>${fmtR(totalG)}</td><td></td>`;
   tfoot.appendChild(tf);
-  const osV=_registros.filter(r=>_filtro.has(r.tec));
+  const osV=_registros.filter(r=>_filtro.has(r.tec)&&!_tabRemovidos.has(r.tec));
   document.getElementById('cards-resumo').innerHTML=`
     <div class="metric"><div class="metric-label">OS processadas</div><div class="metric-value">${osV.length}</div></div>
-    <div class="metric"><div class="metric-label">Técnicos</div><div class="metric-value">${nomes.length}</div></div>
+    <div class="metric"><div class="metric-label">Técnicos</div><div class="metric-value">${nomes.length+_tabExtras.filter(e=>e.nome).length}</div></div>
     <div class="metric"><div class="metric-label">Total bonificação</div><div class="metric-value">${fmtR(totalG)}</div></div>`;
   document.getElementById('lista-os').innerHTML=osV.map(r=>`<div class="os-item">${r.noOs} — ${r.cliente} — <strong>${r.tec}</strong>${r.ajs.length?' + '+r.ajs.join(', '):''} — ${fmtData(r.dtC)}</div>`).join('');
   window._resumoBonif=resumo;window._totalG=totalG;window._nomesFilt=nomes;
@@ -871,6 +940,8 @@ function exportarPDF(){
   const CINZAC=[240,240,238];
   const periodo=getPeriodo(), nomes=window._nomesFilt||[];
   const hoje=new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'});
+  const extrasComNome=_tabExtras.filter(e=>e.nome&&e.nome.trim());
+  function valorEfetivo(n){const ov=_tabOverrides[n];return ov&&ov.valor!==undefined?ov.valor:_resultados[n].total;}
 
   // ── CABEÇALHO ──────────────────────────────────────────────
   doc.setFillColor(...PRETO);
@@ -989,10 +1060,15 @@ function exportarPDF(){
   ];
   const rowsRes=nomes.map(n=>{
     const r=_resultados[n];
-    const tot=r.vOs+(r.dVia*50)+(r.mont?r.mont.v:0)+(r.bon?r.bon.v:0);
+    const ov=_tabOverrides[n];
+    const tot=valorEfetivo(n);
+    if(ov&&ov.valor!==undefined){
+      return[n,'—','—','—','—',fmtR(tot)];
+    }
     return[n,fmtR(r.vOs),fmtR(r.dVia*50),fmtR(r.mont?r.mont.v:0),fmtR(r.bon?r.bon.v:0),fmtR(tot)];
   });
-  const grand=nomes.reduce((s,n)=>{const r=_resultados[n];return s+r.vOs+(r.dVia*50)+(r.mont?r.mont.v:0)+(r.bon?r.bon.v:0);},0);
+  extrasComNome.forEach(e=>rowsRes.push([e.nome,'—','—','—','—',fmtR(e.valor)]));
+  const grand=nomes.reduce((s,n)=>s+valorEfetivo(n),0)+extrasComNome.reduce((s,e)=>s+(Number(e.valor)||0),0);
   drawTable(colsRes,rowsRes,['Total Geral','','','','',fmtR(grand)],PRETO,OURO,PRETO);
 
   // ── 2. SOBREAVISO ──────────────────────────────────────────
@@ -1042,8 +1118,14 @@ function exportarPDF(){
 secHR();
   secTitulo('Bonificação por OS',_metricas.map(m=>'R$ '+m.valor.toFixed(2).replace('.',',')+'  '+m.nome).join('  ·  '));
   const colsOS=[{w:70,align:'left',header:'Técnico'},{w:36,align:'right',header:'OS Técnico'},{w:36,align:'right',header:'OS Ajudante'},{w:36,align:'right',header:'Valor'}];
-  const rowsOS=nomes.map(n=>{const r=_resultados[n];return[n,String(r.osTec),String(r.osAj),fmtR(r.vOs)];});
-  const totOS=nomes.reduce((s,n)=>s+(_resultados[n].vOs||0),0);
+  const rowsOS=nomes.map(n=>{
+    const r=_resultados[n],ov=_tabOverrides[n]||{};
+    const osTec=ov.osTec!==undefined?ov.osTec:r.osTec;
+    const osAj=ov.osAj!==undefined?ov.osAj:r.osAj;
+    return[n,String(osTec),String(osAj),fmtR(ov.valor!==undefined?ov.valor:r.vOs)];
+  });
+  extrasComNome.forEach(e=>rowsOS.push([e.nome,String(e.osTec||0),String(e.osAj||0),fmtR(e.valor)]));
+  const totOS=nomes.reduce((s,n)=>{const ov=_tabOverrides[n]||{};return s+(ov.valor!==undefined?ov.valor:(_resultados[n].vOs||0));},0)+extrasComNome.reduce((s,e)=>s+(Number(e.valor)||0),0);
   drawTable(colsOS,rowsOS,['Total','','',fmtR(totOS)]);
 
   // ── 4. VIAGENS ─────────────────────────────────────────────
