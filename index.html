@@ -466,6 +466,7 @@ table.sa tfoot td:not(:first-child){text-align:right}
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
         Gestão Operacional — Bonificação
       </p>
+      <p style="font-size:10.5px;color:var(--text3);margin:-4px 0 8px">Clique nos campos da tabela para editar. Edições, exclusões e inclusões ficam salvas automaticamente neste navegador, mesmo após clicar em "Calcular" de novo.</p>
       <div style="overflow-x:auto">
         <table class="rh">
           <thead><tr><th>Técnico</th><th>OS técnico</th><th>OS ajudante</th><th>Viagens</th><th>Montagens</th><th>Bônus</th><th>Valor total (R$)</th><th></th></tr></thead>
@@ -474,6 +475,7 @@ table.sa tfoot td:not(:first-child){text-align:right}
         </table>
       </div>
       <button class="add" onclick="addLinhaTabela()" style="margin-top:8px">+ incluir colaborador</button>
+      <button class="add" onclick="restaurarEdicoesPadrao()" style="margin-top:6px;border-color:var(--border2)">↺ Restaurar valores originais (desfazer edições)</button>
       <button class="copy-btn" onclick="copiarBonif()">Copiar resumo de bonificação</button>
       <button class="copy-btn export" onclick="exportarPDF()">⬇ Exportar PDF</button>
       <button class="copy-btn" onclick="exportarWord()" style="margin-top:6px;background:var(--surface2);color:var(--text);border:1px solid var(--border2);font-weight:500">⬇ Exportar Word</button>
@@ -590,6 +592,33 @@ document.getElementById('data-hoje').textContent=new Date().toLocaleDateString('
 const VT=4,VA=2,VF=20,VV=50,HORAS_SA=10;
 let _dadosAta=null,_resultados={},_registros=[],_filtro=new Set(),_saResultados=[];
 let _tabOverrides={},_tabRemovidos=new Set(),_tabExtras=[];
+const CHAVE_EDICOES='blintrack_rh_bonif_edicoes_v1';
+function salvarEdicoes(){
+  try{
+    localStorage.setItem(CHAVE_EDICOES,JSON.stringify({
+      overrides:_tabOverrides,
+      removidos:[..._tabRemovidos],
+      extras:_tabExtras
+    }));
+  }catch(e){/* localStorage indisponível (modo privado etc) — segue sem persistir */}
+}
+function carregarEdicoes(){
+  try{
+    const raw=localStorage.getItem(CHAVE_EDICOES);
+    if(!raw)return;
+    const d=JSON.parse(raw);
+    _tabOverrides=d.overrides||{};
+    _tabRemovidos=new Set(d.removidos||[]);
+    _tabExtras=d.extras||[];
+  }catch(e){/* ignora se corrompido */}
+}
+function restaurarEdicoesPadrao(){
+  if(!confirm('Isso vai apagar todas as edições, exclusões e colaboradores incluídos manualmente na tabela de bonificação. Confirma?'))return;
+  _tabOverrides={};_tabRemovidos=new Set();_tabExtras=[];
+  try{localStorage.removeItem(CHAVE_EDICOES);}catch(e){}
+  if(_registros&&_registros.length)renderTabela();
+}
+carregarEdicoes();
 
 // UPLOAD
 const zone=document.getElementById('upload-zone');
@@ -693,7 +722,6 @@ function getMetrica(id){ const m=_metricas.find(x=>x.id===id); return m?m.valor:
 function calcular(){
   document.getElementById('erro-msg').style.display='none';
   if(!_dadosAta){mostrarErro('Selecione o arquivo .xlsx da ata antes de calcular.');return;}
-  _tabOverrides={};_tabRemovidos=new Set();_tabExtras=[];
   const rows=_dadosAta,registros=[],osVistas=new Set();
   let idxOs=0,idxCli=1,idxProb=3,idxTec=4,idxAjs=[],idxSt=6,idxDt=10;
   for(let i=0;i<rows.length;i++){
@@ -813,24 +841,29 @@ function toggleTodos(cT){
 
 function addLinhaTabela(){
   _tabExtras.push({id:'extra_'+Date.now()+Math.floor(Math.random()*1000),nome:'',osTec:0,osAj:0,viagens:'—',montagens:'—',bonus:'—',valor:0});
+  salvarEdicoes();
   renderTabela();
 }
 function removerLinhaTabela(nome){
   _tabRemovidos.add(nome);
+  salvarEdicoes();
   renderTabela();
 }
 function removerExtra(id){
   _tabExtras=_tabExtras.filter(e=>e.id!==id);
+  salvarEdicoes();
   renderTabela();
 }
 function editarOverride(nome,campo,valor){
   if(!_tabOverrides[nome])_tabOverrides[nome]={};
   _tabOverrides[nome][campo]=campo==='valor'?(parseFloat(valor)||0):valor;
+  salvarEdicoes();
   renderTabela();
 }
 function editarExtra(id,campo,valor){
   const e=_tabExtras.find(x=>x.id===id);if(!e)return;
   e[campo]=campo==='valor'||campo==='osTec'||campo==='osAj'?(parseFloat(valor)||0):valor;
+  salvarEdicoes();
   renderTabela();
 }
 function renderTabela(){
